@@ -1,0 +1,10 @@
+{
+  "python": {
+    "target-version": ["py37"],
+    "line-length": 80,
+    "single-quote": true,
+    "trailing-comma": "all",
+    "skip-string-normalization": true,
+    "ignore": ["E203", "E501", "W503"]
+  }
+}
