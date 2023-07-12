@@ -101,3 +101,16 @@ def plot_weed_distribution(xx, yy, density_map):
     ax.set_title('Estimated Weed Concentration with Diverse Distribution')
     plt.show()
 
+def plot_gaussian_sensor_model(points, sensor_values):
+    """
+    Plot the Gaussian sensor model.
+
+    Parameters:
+    points (np.array): An array of points where each point is an array [x, y].
+    sensor_values (np.array): An array of sensor values.
+    """
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(points[:, 0], points[:, 1], sensor_values)
+    plt.show()

@@ -83,3 +83,52 @@ def sensor_func(point, grid_points, weed_density):
 
     """
     return griddata(grid_points, weed_density, point, method='linear')
+
+import numpy as np
+
+def gaussian_sensor_model(point, mean, covariance):
+    """
+    Evaluate the Gaussian sensor model at a given point.
+    
+    Parameters:
+    point (np.array): The point at which to evaluate the function.
+    mean (np.array): The current estimate of the weed concentration center.
+    covariance (np.array): The covariance matrix representing the uncertainty in the estimate.
+    
+    Returns:
+    float: The sensor value at the given point.
+    """
+    k = len(point)
+    normalization_factor = 1 / np.sqrt((2 * np.pi) ** k * np.linalg.det(covariance))
+    exp_argument = -1/2 * (point - mean).T @ np.linalg.inv(covariance) @ (point - mean)
+    
+    return normalization_factor * np.exp(exp_argument)
+
+def apply_gaussian_sensor_model(points, mean, covariance,radius=1.5):
+    """
+    Apply the gaussian sensor model to a set of points.
+
+    Parameters:
+    points (np.array): An array of points where each point is an array [x, y].
+    mean (np.array): Mean of the Gaussian distribution.
+    covariance (np.array): Covariance matrix of the Gaussian distribution.
+    radius (float): Radius of the circular area (centered at [0, 0])
+
+    Returns:
+    np.array: An array of sensor values.
+    """
+
+    sensor_values = []
+
+    for point in points:
+        # Check if the point is inside the circular area
+        if np.linalg.norm(point - mean) <= radius:
+            sensor_value = gaussian_sensor_model(point, mean, covariance)
+        else:
+            sensor_value = 0  # or any other value that indicates no sensor data
+
+        sensor_values.append(sensor_value)
+
+    return np.array(sensor_values)
+
+
