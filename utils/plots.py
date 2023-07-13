@@ -114,3 +114,33 @@ def plot_gaussian_sensor_model(points, sensor_values):
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(points[:, 0], points[:, 1], sensor_values)
     plt.show()
+
+def visualize_initial_state(vor: Voronoi, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, sensor_readings):
+    """
+    Visualize the initial state of the drone swarm.
+
+    Parameters:
+    vor (scipy.spatial.Voronoi): Voronoi diagram.
+    finite_vertices (np.ndarray): Array of vertices for finite Voronoi regions.
+    finite_regions (list): List of finite Voronoi regions.
+    grid_points (np.ndarray): Array of grid points within the circular boundary.
+    xx (numpy.ndarray): 2D array of shape (n, m) representing the X coordinates of grid points.
+    yy (numpy.ndarray): 2D array of shape (n, m) representing the Y coordinates of grid points.
+    weed_density (np.ndarray): Array of weed density at each grid point.
+    voronoi_centers (np.ndarray): Array of Voronoi centers.
+    sensor_readings (list): List of initial sensor readings for each drone.
+
+    Returns:
+    None
+    """
+
+    # Visualize the Voronoi diagram
+    plot_voronoi(vor, finite_vertices, voronoi_centers)
+
+    # Visualize the weed distribution
+    plot_weed_distribution(xx, yy, weed_density.reshape(xx.shape))
+
+    # Visualize the sensor readings
+    # for i, readings in enumerate(sensor_readings):
+    #     plot_gaussian_sensor_model(voronoi_centers[i], readings)
+    plot_gaussian_sensor_model(voronoi_centers, sensor_readings)

@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KernelDensity
 from scipy.interpolate import griddata
 from utils import plots
+from perlin_noise import PerlinNoise
 
 
 def generate_kde_centers(num_centers, radius):
@@ -28,7 +29,7 @@ def generate_kde_centers(num_centers, radius):
     return np.array(centers)
 
 
-def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, plot=False):
+def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolution = 0.1, plot=False):
     """
     Generate a weed concentration distribution within a circular boundary.
 
@@ -36,14 +37,17 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, plot=False):
         r (float): Radius of the circular boundary.
         num_gaussians (int): Number of Gaussian distributions to generxsate.
         bandwidth (float): Bandwidth parameter for the kernel density estimation. Change to modify spread.
+        grid_resolution (float): factor determining how fine or coarse your grid is
 
     Returns:
-        numpy.ndarray: Array of shape (n, 2) containing the grid points.
-        numpy.ndarray: Array of shape (n,) containing the corresponding weed densities.
+        numpy.ndarray: 2D array of shape (n, m) representing the X coordinates of grid points.
+        numpy.ndarray: 2D array of shape (n, m) representing the Y coordinates of grid points.
+        numpy.ndarray: 2D array of shape (n, m) representing the grid points.
+        numpy.ndarray: 2D array of shape (n, m) representing the weed densities.
+
 
     """
     # Define the grid for estimation
-    grid_resolution = 0.01
     x_min, x_max = -r, r
     y_min, y_max = -r, r
     xx, yy = np.meshgrid(np.arange(x_min, x_max, grid_resolution),
@@ -65,7 +69,7 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, plot=False):
     if plot:
         plots.plot_weed_distribution(xx, yy, density_map)
 
-    return grid_points, weed_density
+    return xx, yy, grid_points, weed_density
 
 
 
@@ -131,4 +135,50 @@ def apply_gaussian_sensor_model(points, mean, covariance,radius=1.5):
 
     return np.array(sensor_values)
 
+def generate_perlin_noise(shape, scale=0.1):
+    """
+    Generate a 2D Perlin noise array.
+
+    Parameters:
+    shape (tuple): Shape of the output array.
+    scale (float): Scaling factor for the noise.
+
+    Returns:
+    np.array: Array containing the generated Perlin noise.
+    """
+    output = np.zeros(shape)
+
+    noise = PerlinNoise(octaves=6, seed=np.random.randint(0, 100))
+
+    for i in range(shape):
+            output[i] = noise([i * scale])
+
+    return output
+
+def sample_weed_density(sensor_func, points, sensor_noise_std_dev=0.1, noise_model='gaussian'):
+    """
+    Sample the weed density at the given points.
+
+    Parameters:
+    sensor_func (callable): Function that describes the sensor measurement process.
+    points (np.array): Array of points at which to take measurements.
+    sensor_noise_std_dev (float): Standard deviation of the sensor noise.
+    noise_model (str): The model of noise to use. Supported values are 'gaussian' and 'perlin'.
+
+    Returns:
+    np.array: Sensor measurements at the given points.
+    """
+    # Calculate the true sensor values
+    true_values = sensor_func(points)
+
+    # Add noise to simulate real-world conditions
+    if noise_model == 'gaussian':
+        noise = np.random.normal(scale=sensor_noise_std_dev, size=true_values.shape)
+    elif noise_model == 'perlin':
+        noise = generate_perlin_noise(true_values.shape[0], scale=sensor_noise_std_dev)
+    else:
+        raise ValueError("Invalid noise model. Supported models are 'gaussian' and 'perlin'.")
+
+    # Return the noisy sensor measurements
+    return true_values + noise
 

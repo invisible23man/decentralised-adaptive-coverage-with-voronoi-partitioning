@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "python": "/home/invisibleman/anaconda3/envs/drones/bin/python",
+            "preLaunchTask": "selectDebugConfig",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Test Sensor Model",
+            "type": "python",
+            "python": "/home/invisibleman/anaconda3/envs/drones/bin/python",
+            "args": [
+                "test-sensor-sampling"
+            ],
+            "preLaunchTask": "selectDebugConfig",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Current File",
+            "configurations": [
+                "Python: Current File"
+            ]
+        },
+        {
+            "name": "Debug Test Sensor Model",
+            "configurations": [
+                "Python: Test Sensor Model"
+            ]
+        }
+    ]
+}

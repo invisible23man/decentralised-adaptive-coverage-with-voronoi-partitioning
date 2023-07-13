@@ -45,6 +45,8 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
             - finite_vertices (numpy.ndarray): Array of shape (m, 2) containing the vertices of finite Voronoi regions.
             - finite_regions (list): List of finite Voronoi regions.
             - voronoi_centers (numpy.ndarray): Array of shape (n, 2) containing the Voronoi centers.
+            - xx (numpy.ndarray): 2D array of shape (n, m) representing the X coordinates of grid points.
+            - yy (numpy.ndarray): 2D array of shape (n, m) representing the Y coordinates of grid points.
             - grid_points (numpy.ndarray): Array of shape (k, 2) containing the grid points within the circular boundary.
             - weed_density (numpy.ndarray): Array of shape (k,) containing the weed density at each grid point.
             - initial_estimates (list): List of initial estimates. Each element is either a tuple of mean and covariance (for Kalman filter), or an array of particles (for particle filter).
@@ -61,10 +63,10 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
         [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
 
     vor, finite_vertices, finite_regions, voronoi_centers = voronoi.compute_voronoi_with_boundaries(
-        initial_positions, boundary_points, plot=True)
+        initial_positions, boundary_points, plot=False)
 
     # Function generate weed distribution(AOIs) within the circular boundary
-    grid_points, weed_density = generate_weed_distribution(r, plot=True)
+    xx, yy, grid_points, weed_density = generate_weed_distribution(r, plot=False)
 
     # Initialize estimates
     if filter_type == 'Kalman':
@@ -78,4 +80,4 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
     else:
         raise ValueError("filter_type should be either 'Kalman' or 'Particle'.")
 
-    return vor, finite_vertices, finite_regions, voronoi_centers, grid_points, weed_density, initial_estimates
+    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates
