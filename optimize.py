@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import pyro
 import pyro.distributions as dist
-
+from tqdm import tqdm
 
 
 def voronoi_ode(t, centers, finite_vertices, finite_regions,
@@ -105,7 +105,7 @@ def optimize_voronoi_centers_consensus(voronoi_centers, finite_vertices, finite_
 
     losses = []
     num_steps = 2000  # number of VI steps
-    for t in range(num_steps):
+    for t in tqdm(range(num_steps)):
         losses.append(svi.step(voronoi_centers))
 
     # Here is the sample from the variational distribution

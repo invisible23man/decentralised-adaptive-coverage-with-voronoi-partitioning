@@ -1,5 +1,6 @@
 from scipy.integrate import quad
 import numpy as np
+from shapely import Point
 
 
 def boustrophedon_points(partition):
@@ -134,3 +135,47 @@ def optimize_voronoi_centers_consensus(voronoi_centers, finite_vertices, finite_
         print("Reached maximum number of iterations without convergence.")
 
     return voronoi_centers
+
+def estimate_weed_density_in_cell(sensor_func, cell, num_samples=10000):
+    """
+    Estimate the total weed density within a Voronoi cell.
+
+    Parameters:
+    sensor_func (callable): Function that describes the sensor measurement process.
+    cell (shapely.geometry.Polygon): The Voronoi cell.
+    num_samples (int): The number of points to sample within the cell.
+
+    Returns:
+    float: The estimated total weed density in the cell.
+    """
+    # Generate random points within the cell
+    points = generate_random_points_in_polygon(cell, num_samples)
+
+    # Estimate the weed density at each point
+    densities = sensor_func(points)
+
+    # Compute the average density and multiply it by the cell's area
+    avg_density = np.mean(densities)
+    cell_area = cell.area
+
+    return avg_density * cell_area
+
+def generate_random_points_in_polygon(polygon, num_points):
+    """
+    Generate a number of random points within a polygon.
+
+    Parameters:
+    polygon (shapely.geometry.Polygon): The polygon.
+    num_points (int): The number of points to generate.
+
+    Returns:
+    np.array: An array of points.
+    """
+    points = []
+    minx, miny, maxx, maxy = polygon.bounds
+    while len(points) < num_points:
+        random_point = Point([np.random.uniform(minx, maxx), np.random.uniform(miny, maxy)])
+        if random_point.within(polygon):
+            points.append(np.array(random_point))
+    return np.array(points)
+
