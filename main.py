@@ -1,9 +1,8 @@
 import configparser
 from initialization import initial_setup
 from move import voronoi_coverage_with_rectangular_spirals
-from utils import plots, voronoi
-from sensor import apply_gaussian_sensor_model, sense
-import numpy as np
+from robots import Robot
+from utils import plots
 from optimize import optimize_voronoi_centers_consensus
 from tqdm import tqdm
 
@@ -16,8 +15,12 @@ config.read(
 # Get values from the config file
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')
 r_area = config.getfloat('INITIAL_SETUP', 'r_area')
+grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
 filter_type = config.get('INITIAL_SETUP', 'filter_type')
 num_particles = config.getint('INITIAL_SETUP', 'num_particles')
+
+sampling_time = config.getint('SIMULATION_SETUP', 'sampling_time')
+time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
 
 # Perform initial setup
 vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
@@ -25,29 +28,27 @@ vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
         initial_setup(n=n_drones, r=r_area, filter_type=filter_type,
                       num_particles=num_particles, plots=False)
 
-# Initial guess for the weed concentration centers
-initial_guesses = initial_estimates
-
-# Initialize the sensor model
-initial_covariance = 0.1 * np.eye(2)
-
-# # Compute initial sensor readings
-# sensor_readings = [apply_gaussian_sensor_model(voronoi_centers, guess, initial_covariance, r_area)
-#                    for guess in initial_guesses]
-
 # Visualize the initial state
 # plots.visualize_initial_state(vor, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
 
 # Plot Spiral Coverage for initial state
-sampling_time = 3  # Total sampling time
-time_per_step = 0.1  # Time per step
-grid_resolution = 0.1  # Grid resolution
 spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(vor, finite_regions, voronoi_centers, 
     grid_resolution, grid_points, weed_density,
     sampling_time, time_per_step)
 
+# Vizualize coverage path
 plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
 
+drones = []
+# # Start the iterative process 
+for drone in tqdm(range(n_drones)):
+    drone = Robot(vor, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config)
+    # # Perform the optimization in a loop
+    n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
+    for i in tqdm(range(n_iter)):
+        drone.move_and_sense(vor, grid_points, weed_density)
+        drone.update()
+        drone.calculate_new_voronoi_center()
 
 
 # # Start the iterative process of optimizing Voronoi centers
