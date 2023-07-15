@@ -1,6 +1,6 @@
 import configparser
 from initialization import initial_setup
-from move import voronoi_coverage_with_spirals
+from move import voronoi_coverage_with_rectangular_spirals
 from utils import plots, voronoi
 from sensor import apply_gaussian_sensor_model, sense
 import numpy as np
@@ -10,7 +10,8 @@ from tqdm import tqdm
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read('/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/config.ini')
+config.read(
+    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/config.ini')
 
 # Get values from the config file
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')
@@ -19,8 +20,10 @@ filter_type = config.get('INITIAL_SETUP', 'filter_type')
 num_particles = config.getint('INITIAL_SETUP', 'num_particles')
 
 # Perform initial setup
-vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates, boundary_points = \
-    initial_setup(n=n_drones, r=r_area, filter_type=filter_type, num_particles=num_particles)
+vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
+    grid_points, weed_density, initial_estimates, boundary_points = \
+        initial_setup(n=n_drones, r=r_area, filter_type=filter_type,
+                      num_particles=num_particles, plots=False)
 
 # Initial guess for the weed concentration centers
 initial_guesses = initial_estimates
@@ -35,12 +38,17 @@ initial_covariance = 0.1 * np.eye(2)
 # Visualize the initial state
 # plots.visualize_initial_state(vor, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
 
-# Plot Spiral Coverage for initial state 
-sampling_time = 10.0  # Total sampling time
+# Plot Spiral Coverage for initial state
+sampling_time = 3  # Total sampling time
 time_per_step = 0.1  # Time per step
 grid_resolution = 0.1  # Grid resolution
-spirals = voronoi_coverage_with_spirals(vor, finite_regions, voronoi_centers, sampling_time, time_per_step, grid_resolution)
-plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spirals)    
+spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(vor, finite_regions, voronoi_centers, 
+    grid_resolution, grid_points, weed_density,
+    sampling_time, time_per_step)
+
+plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
+
+
 
 # # Start the iterative process of optimizing Voronoi centers
 # t_step = config.getfloat('ITERATIVE_PROCESS', 'time_step')

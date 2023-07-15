@@ -1,52 +1,85 @@
 import numpy as np
-import pyro
-import sensor
-
+from filters.Kalman import KalmanFilter
 
 class Robot:
-    def __init__(self, initial_position, grid_points, weed_density):
-        self.position = initial_position
-        self.measurements = []
-        self.region_of_competence = None
-        self.local_estimate = None
-        self.variance = None
-        self.centroid = None
-        self.neighbors = []
+    def __init__(self, vor_center, finite_region, finite_vertices):
+        """
+        Initialize the Robot.
 
-        self.grid_points = grid_points
-        self.weed_density = weed_density
+        Parameters:
+        vor_center (numpy array): Coordinates of the Voronoi center.
+        finite_region (list): List of vertices comprising the finite region.
+        finite_vertices (numpy array): Coordinates of the finite vertices.
+        """
+        self.vor_center = vor_center
+        self.finite_region = finite_region
+        self.finite_vertices = finite_vertices
+        self.sensor_function = None
+        self.kalman_filter = None
 
-    def collect_measurement(self):
-         self.measurements.append(sensor.sense(self.position, self.grid_points, self.weed_density))
+    def set_sensor_function(self, sensor_function):
+        """
+        Set the sensor function for the Robot.
 
-    def calculate_local_estimate(self):
-        self.local_estimate = calculate_local_estimate(self.measurements)
+        Parameters:
+        sensor_function (callable): Sensor function.
+        """
+        self.sensor_function = sensor_function
 
-    def calculate_posterior_variance(self):
-        # Placeholder for posterior variance calculation
-        self.variance = calculate_posterior_variance(self.measurements)
+    def set_initial_state(self, initial_state, initial_covariance):
+        """
+        Set the initial state and covariance for the Kalman filter.
 
-    def calculate_centroid(self):
-        # Placeholder for centroid calculation
-        self.centroid = calculate_centroid(self.region_of_competence)
+        Parameters:
+        initial_state (numpy array): Initial state estimate.
+        initial_covariance (numpy array): Initial state covariance matrix.
+        """
+        self.kalman_filter = KalmanFilter(A, B, H, Q, R, initial_state, initial_covariance)
 
-    def compute_target_point(self):
-        # Compute target point and decide next movement
-        max_variance_point = np.max(self.variance)
-        p = F(max_variance_point)
-        eta = np.random.binomial(n=1, p=p)
-        if eta == 1:
-            self.position = np.argmax(self.variance)
+    def move(self, move_vector):
+        """
+        Move the Robot.
+
+        Parameters:
+        move_vector (numpy array): Vector representing the movement.
+        """
+        self.vor_center += move_vector
+
+    def sense(self):
+        """
+        Perform sensing and update the estimated sensor function.
+
+        Returns:
+        float: Sensor value at the Robot's location.
+        """
+        sensor_value = self.sensor_function(self.vor_center)
+        self.kalman_filter.update(sensor_value)
+        return sensor_value
+
+    def calculate_new_voronoi_center(self):
+        """
+        Calculate the new Voronoi center based on the updated sensor function.
+
+        Returns:
+        numpy array: New Voronoi center coordinates.
+        """
+        # Sample points
+        cnt = 10000
+        xp = min(self.finite_vertices[:, 0]) + np.random.rand(cnt) * (max(self.finite_vertices[:, 0]) - min(self.finite_vertices[:, 0]))
+        yp = min(self.finite_vertices[:, 1]) + np.random.rand(cnt) * (max(self.finite_vertices[:, 1]) - min(self.finite_vertices[:, 1]))
+        in_voronoi = inpolygon(xp, yp, self.finite_vertices[:, 0], self.finite_vertices[:, 1])
+        xp = xp[in_voronoi]
+        yp = yp[in_voronoi]
+
+        # Integrals over Voronoi region
+        kq = kappa(xp, yp)
+        if self.sensor_info_flag:
+            phi_est = kq * self.sensor_function(xp, yp)
         else:
-            self.position = self.centroid
+            phi_est = kq * self.kalman_filter.state
 
+        mv = np.sum(phi_est)
+        cx = np.sum(xp * phi_est) / mv
+        cy = np.sum(yp * phi_est) / mv
 
-def calculate_posterior_variance(self):
-    # Define a simple prior
-    mu = pyro.sample("mu", pyro.distributions.Normal(self.local_estimate, 1.0))
-    # Likelihood with measurements
-    for i in range(len(self.measurements)):
-        pyro.sample(f"obs_{i}", pyro.distributions.Normal(mu, 1.0), obs=self.measurements[i])
-    # Use Pyro's inference algorithm to compute the posterior
-    posterior = pyro.infer.Importance(self.model, num_samples=1000).run()
-    self.variance = posterior.empirical("mu").variance
+        return np.array([cx, cy])

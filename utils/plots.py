@@ -182,7 +182,9 @@ def visualize_final_state(vor, finite_vertices, finite_regions, xx, yy, grid_poi
         plt.show()
 
 
-def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spirals):
+import matplotlib.pyplot as plt
+
+def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spirals, grid_resolution=0.1):
     """
     Plot the Voronoi diagram along with the spiral paths.
 
@@ -193,11 +195,41 @@ def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spir
     centers (np.array): The centers of the Voronoi partitions.
     spirals (list): List of spiral paths for each Voronoi partition.
     """
-    fig, ax = plot_voronoi(vor, finite_vertices, centers)
+    fig, ax = plt.subplots()
 
+    for region in finite_vertices:
+        ax.fill(*zip(*region), alpha=0.4)
+
+    # Plot the Voronoi vertices
+    ax.scatter(vor.vertices[:, 0], vor.vertices[:, 1], color='blue', marker='s', label='Vertices')
+
+    # Plot the spiral paths
     for spiral in spirals:
-        plt.plot(spiral[:, 0], spiral[:, 1], 'r-')
+        ax.plot(spiral[:, 0], spiral[:, 1], 'r-')
 
-    plt.xlim(vor.min_bound[0] - 0.1, vor.max_bound[0] + 0.1)
-    plt.ylim(vor.min_bound[1] - 0.1, vor.max_bound[1] + 0.1)
+    # Plot the Voronoi points
+    ax.scatter(centers[:, 0], centers[:, 1], color='black', label='Points')
+
+    ax.legend()
+
+    # Calculate the maximum range of the points
+    max_range = np.max(np.abs(np.append(centers, vor.vertices)))
+    buffer = 0.0  # Set the buffer value as per your requirement
+    limit = np.ceil(max_range + buffer)
+
+    # Add grid with specified resolution
+    x_ticks = np.arange(-limit, limit, grid_resolution)
+    y_ticks = np.arange(-limit, limit, grid_resolution)
+    ax.set_xticks(np.arange(-limit, limit + 1, 1), minor=False)
+    ax.set_yticks(np.arange(-limit, limit + 1, 1), minor=False)
+    ax.set_xticks(x_ticks, minor=True)
+    ax.set_yticks(y_ticks, minor=True)
+    ax.grid(True, which='minor', color='gray', linestyle='-', linewidth=0.1)
+
+    ax.set_xlim(-limit, limit)
+    ax.set_ylim(-limit, limit)
+
+
+
     plt.show()
+

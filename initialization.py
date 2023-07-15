@@ -3,13 +3,15 @@ import numpy as np
 from utils import plots, voronoi
 from sklearn.neighbors import KernelDensity
 
-def distribute_drones(n, r, plot=False):
+def distribute_drones(n, r, plot=False, grid_resolution=0.1):
     """
-    Distributes 'n' drones evenly within a circular area of radius 'r'.
+    Distributes 'n' drones evenly within a circular area of radius 'r' and aligns their positions with the center of the grid.
 
     Args:
         n (int): Number of drones.
         r (float): Radius of the circular area.
+        grid_resolution (float): Resolution of the grid.
+        plot (bool): Whether to visualize the initial positions. Defaults to False.
 
     Returns:
         numpy.ndarray: Array of shape (n, 2) containing the Cartesian coordinates of the drones.
@@ -23,6 +25,10 @@ def distribute_drones(n, r, plot=False):
     x = radii * np.cos(angles)
     y = radii * np.sin(angles)
 
+    # Adjust positions to align with the center of the grid
+    x = np.round(x / grid_resolution) * grid_resolution + (grid_resolution / 2)
+    y = np.round(y / grid_resolution) * grid_resolution + (grid_resolution / 2)
+
     positions = np.column_stack((x, y))
 
     # Visualize initial positions
@@ -30,6 +36,7 @@ def distribute_drones(n, r, plot=False):
         plots.visualize_swarm(positions, r)
 
     return positions
+
 
 def generate_kde_centers(num_centers, radius):
     """
@@ -119,7 +126,7 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
             - initial_estimates (list): List of initial estimates. Each element is either a tuple of mean and covariance (for Kalman filter), or an array of particles (for particle filter).
 
     """
-    plot = kwargs['plot'] if 'plot' in kwargs else False
+    plot = kwargs['plots'] if 'plots' in kwargs else False
 
     # Get initial positions
     initial_positions = distribute_drones(n, r, plot)
