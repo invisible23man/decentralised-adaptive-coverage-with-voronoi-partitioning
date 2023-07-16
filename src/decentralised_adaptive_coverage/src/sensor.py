@@ -1,7 +1,5 @@
 import numpy as np
-from sklearn.neighbors import KernelDensity
 from scipy.interpolate import griddata
-from utils import plots
 from perlin_noise import PerlinNoise
 
 def sense(point, grid_points, weed_density):

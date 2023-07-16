@@ -1,0 +1,20 @@
+<launch>
+    <!-- Launch init_voronoi_node -->
+    <node pkg="decentralised_adaptive_coverage" type="init_voronoi.py" name="init_voronoi_node" output="screen"/>
+
+    <!-- Launch control_algorithm_node for each drone
+    <group ns="drones">
+        <param name="~drone_id" value="0"/>
+        <node pkg="<your_package_name>" type="control_algorithm.py" name="control_algorithm_node_0" output="screen"/>
+
+        <param name="~drone_id" value="1"/>
+        <node pkg="<your_package_name>" type="control_algorithm.py" name="control_algorithm_node_1" output="screen"/> -->
+
+        <!-- Add more nodes for each drone -->
+        <!-- <param name="~drone_id" value="2"/>
+        <node pkg="<your_package_name>" type="control_algorithm.py" name="control_algorithm_node_2" output="screen"/>
+        ...
+        <param name="~drone_id" value="<n_drones-1>"/>
+        <node pkg="<your_package_name>" type="control_algorithm.py" name="control_algorithm_node_<n_drones-1>" output="screen"/> -->
+    <!-- </group> -->
+</launch>

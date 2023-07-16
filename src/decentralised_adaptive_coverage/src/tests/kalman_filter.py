@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi')
+sys.path.append(r'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage')
 
 import logging
 import numpy as np

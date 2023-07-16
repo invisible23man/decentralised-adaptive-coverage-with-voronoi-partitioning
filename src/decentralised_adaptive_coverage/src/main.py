@@ -1,3 +1,5 @@
+#! /home/invisibleman/anaconda3/envs/drones/bin/ python
+
 import configparser
 from multiprocessing import Pool, Value
 import threading
@@ -5,17 +7,18 @@ import time
 from typing import List
 from initialization import initial_setup
 from move import voronoi_coverage_with_rectangular_spirals
-from parallelism import parallelize_iterations
+from infra.parallelism import parallelize_iterations
 from robots import Robot
 from utils import plots
-from optimize import optimize_voronoi_centers_consensus
 from tqdm import tqdm
+
+
 
 
 # Load configuration
 config = configparser.ConfigParser()
 config.read(
-    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/config.ini')
+    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/src/config.ini')
 
 # Get values from the config file
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')
