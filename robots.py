@@ -120,9 +120,8 @@ class Robot:
         yp = yp[in_voronoi]
 
         # Integrals over Voronoi region
-        kq = np.array(self.sensor_function(np.array([x,y]), self.kalman_filter.state, self.kalman_filter.covariance) for x,y in zip(xp,yp))
-        phi_est = kq * self.kalman_filter.state
-
+        phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.state, self.kalman_filter.covariance) for x,y in zip(xp,yp)])
+        
         mv = np.sum(phi_est)
         cx = np.sum(xp * phi_est) / mv
         cy = np.sum(yp * phi_est) / mv

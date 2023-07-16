@@ -1,6 +1,11 @@
 import configparser
+from multiprocessing import Pool, Value
+import threading
+import time
+from typing import List
 from initialization import initial_setup
 from move import voronoi_coverage_with_rectangular_spirals
+from parallelism import parallelize_iterations
 from robots import Robot
 from utils import plots
 from optimize import optimize_voronoi_centers_consensus
@@ -37,18 +42,48 @@ spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(vor, fin
     sampling_time, time_per_step)
 
 # Vizualize coverage path
-plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
+# plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
 
-drones = []
-# # Start the iterative process 
-for drone in tqdm(range(n_drones)):
-    drone = Robot(vor, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config)
-    # # Perform the optimization in a loop
-    n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
-    for i in tqdm(range(n_iter)):
-        drone.move_and_sense(vor, grid_points, weed_density)
-        drone.update()
-        drone.calculate_new_voronoi_center()
+drones:List[Robot] = []
+# Initialize the drones 
+for drone in range(n_drones):
+    drones.append(Robot(vor, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config))
+
+# new_centers = []
+# for drone in tqdm(drones, desc="Drone Progress"):
+#     n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
+#     for i in tqdm(range(n_iter)):
+#         drone.move_and_sense(vor, grid_points, weed_density)
+#         drone.update()
+        # new_centers.append(drone.calculate_new_voronoi_center())
+
+
+# parallelize_iterations(drones, vor, grid_points, weed_density, config)
+    
+def control_algorithm(drone:Robot, drones:List[Robot], sampling_time):
+    while True:
+        start_time = time.time()  # Start of the sampling period
+
+        # The robot moves and takes measurements until the sampling time is over
+        while time.time() - start_time < sampling_time:
+            drone.move_and_sense(vor, grid_points, weed_density)
+            # Take measurements and update parameters based on the robot's own sensor information
+            drone.update()
+
+        # After the sampling time is over, the robot checks its neighbors
+        # and uses their information to update parameters
+        # neighbor_parameters = [neighbor.parameters for neighbor in drones if neighbor != drone]
+        # drone.perform_consensus(neighbor_parameters)    
+
+threads = []
+for drone in drones:
+    thread = threading.Thread(target=control_algorithm, args=(drone, drones, sampling_time))
+    thread.start()
+    threads.append(thread)
+
+# Wait for all threads to finish
+for thread in threads:
+    thread.join()
 
 
 # # Start the iterative process of optimizing Voronoi centers
