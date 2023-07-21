@@ -75,7 +75,7 @@ class Robot:
 
         self.kalman_filter = KalmanFilter(A, B, H, Q, R, initial_state, initial_covariance)
 
-    def move_and_sense(self, vor, grid_points, weed_density):
+    def move_and_sense(self, grid_points, weed_density):
         """
         Move the Robot and Sample a Sensor Value
 

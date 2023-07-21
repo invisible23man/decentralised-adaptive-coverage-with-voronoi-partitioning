@@ -1,17 +1,24 @@
+from move import generate_rectangular_spiral_path
 import rospy
 from std_msgs.msg import String
 from PrintColours import *
 from utils import msg_encoder
 
 class Drone:
-    def __init__(self):
+    def __init__(self, config):
 
         self.ns = rospy.get_namespace()
+        self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
 
         if self.ns == "/":
             rospy.loginfo(CBLUE2 + "Using default namespace" + CEND)
         else:
             rospy.loginfo(CBLUE2 + "Using {} namespace".format(self.ns) + CEND)
+
+        self.voronoi_center = None
+        self.voronoi_region = None
+        self.spiral_path = [] 
+        self.sensor_values_from_spiral_path = []
 
         self.all_vertices = String()
         self.voronoi_centers = String()
@@ -23,7 +30,13 @@ class Drone:
         self.grid_points = String()
         self.weed_density = String()
 
-        self.all_vertices = rospy.Subscriber(
+        self.config = config
+        self.grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
+        self.sampling_time = config.getint('SIMULATION_SETUP', 'sampling_time')
+        self.time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
+        self.boundary_tolerance=0.02
+
+        self.all_vertices_sub = rospy.Subscriber(
             "/all_vertices", 
             String, 
             self.callback_all_vertices
@@ -110,3 +123,20 @@ class Drone:
     def callback_weed_density(self, data):
         self.weed_density = msg_encoder.decode_data(data)
         # rospy.loginfo("Received weed_density: %s", self.weed_density)
+
+    def move_and_sense(self):
+
+        self.voronoi_center = self.voronoi_centers[self.drone_id]
+        self.voronoi_region = self.finite_regions[self.drone_id]
+
+        self.spiral_path, self.sensor_values_from_spiral_path = generate_rectangular_spiral_path(
+            self.voronoi_center, 
+            [self.all_vertices[i] for i in self.voronoi_region], 
+            self.grid_resolution, 
+            self.grid_points, 
+            self.weed_density,
+            self.sampling_time, 
+            self.time_per_step, 
+            self.boundary_tolerance)
+
+

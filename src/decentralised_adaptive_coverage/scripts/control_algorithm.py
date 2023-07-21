@@ -2,12 +2,11 @@
 from typing import List
 from move import voronoi_coverage_with_rectangular_spirals
 import rospy
-from std_msgs.msg import String
 from initialization import initial_setup
-from robots import Robot
-from utils import voronoi, rosutils
+from models import Robots
 import configparser
 import time
+from tqdm import tqdm
 
 def main():
     # Initializing ROS node.
@@ -17,18 +16,10 @@ def main():
     config = configparser.ConfigParser()
     config.read(
         '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
+    n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
 
-    # Get values from the config file
-    n_drones = config.getint('INITIAL_SETUP', 'n_drones')
-    r_area = config.getfloat('INITIAL_SETUP', 'r_area')
-    grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
-    filter_type = config.get('INITIAL_SETUP', 'filter_type')
-    num_particles = config.getint('INITIAL_SETUP', 'num_particles')
-
-    sampling_time = config.getint('SIMULATION_SETUP', 'sampling_time')
-    time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
-
-    drone = rosutils.Drone()
+    # Initlialize the Drone
+    drone = Robots.Drone(config)
 
     # # Wait until the drone is ready
     time.sleep(3)
@@ -38,25 +29,20 @@ def main():
 
 
     # Now start the main loop
-    while not rospy.is_shutdown():
-        # rospy.loginfo("Listening {0} {1} for {2}".format(drone.voronoi_centers, drone.boundary_points, drone.ns))
-        # vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(
-        #     drone.voronoi_centers, drone.boundary_points, plot=False)
+    # while not rospy.is_shutdown():
+    for i in tqdm(range(n_iter)):
 
-        # plots.visualize_initial_state(vor, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
+        rospy.loginfo(f"Started movement and sensing:drone{drone.drone_id}, iter:{i}")
+        drone.move_and_sense()
 
-        # Plot Spiral Coverage for initial state
-        spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(
-            drone.all_vertices, 
-            drone.finite_regions, 
-            drone.voronoi_centers, 
-            grid_resolution, 
-            drone.grid_points, 
-            drone.weed_density,
-            sampling_time, time_per_step)
+        drone.initialize_kalman()
+        rospy.loginfo(f"Started Kalman Update:drone{drone.drone_id}, iter:{i}")
+        drone.update()
 
-        rospy.loginfo(f"{len(spiral_paths)},{len(sensor_values)}")
+        rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
+        drone.calculate_new_voronoi_center()
 
+    rospy.loginfo(f"Voronoi Centres for drone{drone.drone_id}: {drone.voronoi_center_tracker}")
 
 if __name__ == '__main__':
     try:
