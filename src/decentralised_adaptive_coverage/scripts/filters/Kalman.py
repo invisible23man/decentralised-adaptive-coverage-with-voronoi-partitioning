@@ -14,11 +14,11 @@ class KalmanFilter:
         initial_state (numpy array): Initial state estimate.
         initial_covariance (numpy array): Initial state covariance matrix.
         """
-        self.A = A
+        self.A = A #Make static , identity, + white noise
         self.B = B
         self.H = H
-        self.Q = Q
-        self.R = R
+        self.Q = Q # tuning parameter
+        self.R = R # based on real sensor
         self.state = initial_state
         self.covariance = initial_covariance
 

@@ -5,7 +5,7 @@ from sensor import gaussian_sensor_model
 from shapely.geometry import Point, Polygon
 
 class Robot:
-    def __init__(self, vor, vor_center, region, vertices, config):
+    def __init__(self, all_vertices, vor_center, region, vertices, config):
         """
         Initialize the Robot.
 
@@ -14,7 +14,7 @@ class Robot:
         region (list): List of vertices comprising the finite region.
         vertices (numpy array): Coordinates of the finite vertices.
         """
-        self.vor = vor
+        self.all_vertices = all_vertices
         self.vor_center = vor_center
         self.region = region
         self.vertices = vertices
@@ -88,7 +88,7 @@ class Robot:
         time_per_step = self.config.getfloat('SIMULATION_SETUP', 'time_per_step')
 
         self.planned_path, self.sampled_sensor_values \
-            = generate_rectangular_spiral_path(self.vor_center, [vor.vertices[i] for i in self.region], 
+            = generate_rectangular_spiral_path(self.vor_center, [self.all_vertices[i] for i in self.region], 
                 grid_resolution, grid_points, weed_density,
                 sampling_time, time_per_step, boundary_tolerance=0.02)
 

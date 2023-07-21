@@ -135,7 +135,7 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
     boundary_points = np.array(
         [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
 
-    vor, finite_vertices, finite_regions, voronoi_centers = voronoi.compute_voronoi_with_boundaries(
+    vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(
         initial_positions, boundary_points, plot)
 
     # Function generate weed distribution(AOIs) within the circular boundary
@@ -153,4 +153,4 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
     else:
         raise ValueError("filter_type should be either 'Kalman' or 'Particle'.")
 
-    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates, boundary_points
+    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates, boundary_points, all_vertices

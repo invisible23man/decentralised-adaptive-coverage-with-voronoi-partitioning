@@ -18,7 +18,7 @@ from tqdm import tqdm
 # Load configuration
 config = configparser.ConfigParser()
 config.read(
-    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/src/config.ini')
+    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
 
 # Get values from the config file
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')
@@ -32,25 +32,25 @@ time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
 
 # Perform initial setup
 vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
-    grid_points, weed_density, initial_estimates, boundary_points = \
+    grid_points, weed_density, initial_estimates, boundary_point, all_vertices = \
         initial_setup(n=n_drones, r=r_area, filter_type=filter_type,
                       num_particles=num_particles, plots=False)
 
 # Visualize the initial state
-# plots.visualize_initial_state(vor, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
+plots.visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
 
 # Plot Spiral Coverage for initial state
-spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(vor, finite_regions, voronoi_centers, 
+spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, voronoi_centers, 
     grid_resolution, grid_points, weed_density,
     sampling_time, time_per_step)
 
 # Vizualize coverage path
-# plots.plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
+plots.plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
 
 drones:List[Robot] = []
 # Initialize the drones 
 for drone in range(n_drones):
-    drones.append(Robot(vor, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config))
+    drones.append(Robot(all_vertices, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config))
 
 # new_centers = []
 # for drone in tqdm(drones, desc="Drone Progress"):
@@ -78,15 +78,15 @@ def control_algorithm(drone:Robot, drones:List[Robot], sampling_time):
         # neighbor_parameters = [neighbor.parameters for neighbor in drones if neighbor != drone]
         # drone.perform_consensus(neighbor_parameters)    
 
-threads = []
-for drone in drones:
-    thread = threading.Thread(target=control_algorithm, args=(drone, drones, sampling_time))
-    thread.start()
-    threads.append(thread)
+# threads = []
+# for drone in drones:
+#     thread = threading.Thread(target=control_algorithm, args=(drone, drones, sampling_time))
+#     thread.start()
+#     threads.append(thread)
 
-# Wait for all threads to finish
-for thread in threads:
-    thread.join()
+# # Wait for all threads to finish
+# for thread in threads:
+#     thread.join()
 
 
 # # Start the iterative process of optimizing Voronoi centers

@@ -35,11 +35,12 @@ def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
     # Create list of original points corresponding to finite regions
     # voronoi_centers = vor.points[vor.point_region[:len(points)]]
     voronoi_centers = points
+    all_vertices = vor.vertices
 
     if plot:
         plots.plot_voronoi(vor, finite_vertices, points)
 
-    return vor, finite_vertices, finite_regions, voronoi_centers
+    return vor, finite_vertices, finite_regions, voronoi_centers, all_vertices
 
 
 def compute_voronoi_neighbours(voronoi_centers, distance_threshold):

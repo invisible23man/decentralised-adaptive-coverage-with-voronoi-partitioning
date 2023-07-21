@@ -36,7 +36,7 @@ def visualize_swarm(positions, r):
     plt.show()
 
 
-def plot_voronoi(vor: Voronoi, finite_vertices, points):
+def plot_voronoi(all_vertices, finite_vertices, points):
     """
     Visualize Voronoi diagram of drone positions in 2D plot.
 
@@ -56,13 +56,13 @@ def plot_voronoi(vor: Voronoi, finite_vertices, points):
     # Plot the points
     sc = ax.scatter(points[:, 0], points[:, 1], color='black', label='Points')
     # Plot the vertices
-    ax.scatter(vor.vertices[:, 0], vor.vertices[:, 1],
+    ax.scatter(all_vertices[:, 0], all_vertices[:, 1],
                color='blue', marker='s', label='Vertices')
 
     ax.legend()
 
     # Calculate the maximum range of the points
-    max_range = np.max(np.abs(np.append(points, vor.vertices)))
+    max_range = np.max(np.abs(np.append(points, all_vertices)))
     buffer = 0.0  # Set the buffer value as per your requirement
     limit = np.ceil(max_range + buffer)
 
@@ -121,7 +121,7 @@ def plot_gaussian_sensor_model(points, sensor_values):
     plt.show()
 
 
-def visualize_initial_state(vor: Voronoi, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, sensor_readings, r):
+def visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, sensor_readings, r):
     """
     Visualize the initial state of the drone swarm.
 
@@ -144,7 +144,7 @@ def visualize_initial_state(vor: Voronoi, finite_vertices, finite_regions, xx, y
     visualize_swarm(voronoi_centers, r)
 
     # Visualize the Voronoi diagram
-    plot_voronoi(vor, finite_vertices, voronoi_centers)
+    plot_voronoi(all_vertices, finite_vertices, voronoi_centers)
 
     # Visualize the weed distribution
     plot_weed_distribution(xx, yy, weed_density.reshape(xx.shape))
@@ -155,7 +155,7 @@ def visualize_initial_state(vor: Voronoi, finite_vertices, finite_regions, xx, y
     # plot_gaussian_sensor_model(voronoi_centers, sensor_readings)
 
 
-def visualize_final_state(vor, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers_list):
+def visualize_final_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers_list):
     """
     Visualize the final state after the optimization of Voronoi centers.
     """
@@ -167,13 +167,13 @@ def visualize_final_state(vor, finite_vertices, finite_regions, xx, yy, grid_poi
         plt.contourf(xx, yy, weed_density, cmap='YlGn')
 
         # Plot Voronoi tesselation
-        plot_voronoi(vor, finite_vertices, finite_regions)
+        plot_voronoi(all_vertices, finite_vertices, finite_regions)
 
         # Plot Voronoi centers
         plt.scatter(*voronoi_centers.T, color='red')
 
         # Calculate the maximum range of the points
-        max_range = np.max(np.abs(np.append(vor.vertices)))
+        max_range = np.max(np.abs(np.append(all_vertices)))
         buffer = 0.0  # Set the buffer value as per your requirement
         limit = np.ceil(max_range + buffer)
 
@@ -184,7 +184,7 @@ def visualize_final_state(vor, finite_vertices, finite_regions, xx, yy, grid_poi
 
 import matplotlib.pyplot as plt
 
-def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spirals, grid_resolution=0.1):
+def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, centers, spirals, grid_resolution=0.1):
     """
     Plot the Voronoi diagram along with the spiral paths.
 
@@ -201,7 +201,7 @@ def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spir
         ax.fill(*zip(*region), alpha=0.4)
 
     # Plot the Voronoi vertices
-    ax.scatter(vor.vertices[:, 0], vor.vertices[:, 1], color='blue', marker='s', label='Vertices')
+    ax.scatter(all_vertices[:, 0], all_vertices[:, 1], color='blue', marker='s', label='Vertices')
 
     # Plot the spiral paths
     for spiral in spirals:
@@ -213,7 +213,7 @@ def plot_voronoi_and_spirals(vor, finite_vertices, finite_regions, centers, spir
     ax.legend()
 
     # Calculate the maximum range of the points
-    max_range = np.max(np.abs(np.append(centers, vor.vertices)))
+    max_range = np.max(np.abs(np.append(centers, all_vertices)))
     buffer = 0.0  # Set the buffer value as per your requirement
     limit = np.ceil(max_range + buffer)
 
