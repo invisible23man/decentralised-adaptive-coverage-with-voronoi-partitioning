@@ -1,5 +1,5 @@
 from utils import msg_encoder
-
+import numpy as np
 class CallbackHandler:
     def __init__(self, drone):
         self.drone = drone
@@ -39,3 +39,8 @@ class CallbackHandler:
     def callback_weed_density(self, data):
         self.drone.weed_density = msg_encoder.decode_data(data)
         # rospy.loginfo("Received weed_density: %s", self.weed_density)
+
+    def center_callback(self, msg, drone_id):
+        # Update the center of the specified drone
+        self.drone.other_centers[drone_id] = np.array([msg.x, msg.y])
+      

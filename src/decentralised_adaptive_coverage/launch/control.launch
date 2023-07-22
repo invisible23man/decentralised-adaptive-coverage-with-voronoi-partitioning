@@ -9,35 +9,35 @@
     <!-- Launch control_algorithm_node for each drone -->
     
 <group ns="drone1">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_0" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_0" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone1"/>
         <param name="use_sim_time"  value="true" />
 </group>
     
 
 <group ns="drone2">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_1" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_1" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone2"/>
         <param name="use_sim_time"  value="true" />
 </group>
     
 
 <group ns="drone3">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_2" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_2" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone3"/>
         <param name="use_sim_time"  value="true" />
 </group>
     
 
 <group ns="drone4">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_3" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_3" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone4"/>
         <param name="use_sim_time"  value="true" />
 </group>
     
 
 <group ns="drone5">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_4" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_4" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone5"/>
         <param name="use_sim_time"  value="true" />
 </group>

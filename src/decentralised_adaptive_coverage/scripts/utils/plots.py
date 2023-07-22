@@ -239,7 +239,7 @@ def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, cent
 
     plt.show()
 
-def plot_results(config):
+def plot_results(config, weed_distribution):
     all_centers = []
     for file in os.listdir(config.get('RESULTS', 'save_directory')):
         with open(os.path.join(config.get('RESULTS', 'save_directory'), file), "rb") as f:
@@ -257,7 +257,7 @@ def plot_results(config):
             data[i]['y'].append(y)
             ax.clear()
             for i, d in data.items():
-                ax.plot(d['x'], d['y'])
+                ax.plot(d['x'], d['y'], 'o-')
 
     ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False)
     plt.show()

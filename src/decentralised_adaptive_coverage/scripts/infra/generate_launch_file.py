@@ -17,7 +17,7 @@ def generate_launch_file(num_drones, LAUNCHFILE):
 
     drone_group_template = """
 <group ns="drone{drone_id}">
-    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_{drone_id_minus_1}" output="screen" respawn="true" respawn_delay="5"/>
+    <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_{drone_id_minus_1}" output="screen" respawn="false" respawn_delay="5"/>
         <param name="namespace" value="/drone{drone_id}"/>
         <param name="use_sim_time"  value="true" />
 </group>

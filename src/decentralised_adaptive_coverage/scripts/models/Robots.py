@@ -7,8 +7,9 @@ from sensor import gaussian_sensor_model
 from shapely.geometry import Point, Polygon
 import rospy
 from std_msgs.msg import String
+from geometry_msgs.msg import Point as rosMsgPoint
 from PrintColours import *
-from utils import callbacks
+from utils import callbacks, voronoi
 
 class Robot:
     def __init__(self, config):
@@ -90,16 +91,20 @@ class Drone(Robot):
 
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
-        # Set up ROS subscribers and callbacks
+        # Set up ROS publishers, subscribers and callbacks
+        self.setup_publishers()
         self.callback_handler = callbacks.CallbackHandler(self)
         self.setup_subscribers()
-
-        self.set_sensor_function(gaussian_sensor_model)
+        self.deregister_inital_topics = False
 
         # Drone Variables for Voronoi Partition
         self.voronoi_center = None
         self.voronoi_region = None
         self.voronoi_center_tracker = []
+        # Initialize dictionaries to store parameters of the other drones
+        self.other_centers = {}
+        self.other_states = {}
+        self.other_covariances = {}
 
         self.all_vertices = String()
         self.voronoi_centers = String()
@@ -112,8 +117,13 @@ class Drone(Robot):
         self.weed_density = String()
 
         # Kalman Settings
+        self.set_sensor_function(gaussian_sensor_model)
         self.initial_covariance = np.eye(2)
         self.move_and_sense_started = False
+        self.apply_consensus = False
+
+    def setup_publishers(self):
+        self.center_pub = rospy.Publisher(f'/drone{self.drone_id}/center', rosMsgPoint, queue_size=10)
 
     def setup_subscribers(self):
         self.all_vertices_sub = rospy.Subscriber(
@@ -164,6 +174,21 @@ class Drone(Robot):
             self.callback_handler.callback_weed_density
         )
 
+        # Initialize subscribers for the other drones
+        for i in range(self.config.getint('INITIAL_SETUP','n_drones')):
+            if i != self.drone_id:  # Don't subscribe to our own topic
+                rospy.Subscriber(
+                    f'/drone{i}/center', 
+                    rosMsgPoint, 
+                    self.callback_handler.center_callback, 
+                    callback_args=i)
+
+    def unsubscribe_initial_topics(self):
+        self.all_vertices_sub.unregister()
+        self.voronoi_centers_sub.unregister()
+        self.finite_regions_sub.unregister()
+        self.finite_vertices_sub.unregister()
+
     @property
     def ready(self):
         return all([self.voronoi_centers.data, self.boundary_points.data, self.finite_regions.data, self.xx.data, self.yy.data])
@@ -210,7 +235,10 @@ class Drone(Robot):
 
         # Integrals over Voronoi region
         phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.state, self.kalman_filter.covariance) for x,y in zip(xp,yp)])
-        
+
+        if self.apply_consensus:
+            self.fuse_estimates()
+
         mv = np.sum(phi_est)
         cx = np.sum(xp * phi_est) / mv
         cy = np.sum(yp * phi_est) / mv
@@ -219,4 +247,38 @@ class Drone(Robot):
         self.voronoi_center = np.array([cx, cy])
         rospy.loginfo(f"New Centre:{self.voronoi_center}:drone{self.drone_id}")
 
+        # Publish the new center
+        center_msg = rosMsgPoint(self.voronoi_center[0], self.voronoi_center[1],0)
+        self.center_pub.publish(center_msg)
+
+        if not self.deregister_inital_topics:
+            self.deregister_inital_topics = True
+            self.unsubscribe_initial_topics()
+
         return self.voronoi_center
+
+    def calculate_voronoi_partitions(self):
+        other_centers_array = np.array(list(self.other_centers.values()))
+        all_centers = np.concatenate([self.voronoi_center[np.newaxis, :], other_centers_array])
+        vor, self.finite_vertices, self.finite_regions, self.voronoi_centers, self.all_vertices = \
+            voronoi.compute_voronoi_with_boundaries(all_centers, self.boundary_points)
+        self.other_centers = {}
+
+    def fuse_estimates(self):
+        # Compute Delaunay triangulation and Laplacian matrix
+        laplacian = voronoi.compute_graph_laplacian(self.voronoi_centers)
+
+        # Normalize the weights
+        weights = laplacian[self.drone_id] / np.sum(laplacian[self.drone_id])
+
+        # Fuse estimates from all drones
+        fused_state = weights[self.drone_id] * self.kalman_filter.state
+        fused_covariance = weights[self.drone_id] * self.kalman_filter.covariance
+        for drone_id, weight in enumerate(weights):
+            if drone_id != self.drone_id:
+                fused_state += weight * self.other_states[drone_id]
+                fused_covariance += weight * self.other_covariances[drone_id]
+
+        # Update the state and covariance
+        self.kalman_filter.state = fused_state
+        self.kalman_filter.covariance = fused_covariance
