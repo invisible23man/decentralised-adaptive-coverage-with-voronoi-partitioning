@@ -17,9 +17,13 @@ def distribute_drones(n, r, plot=False, grid_resolution=0.1):
         numpy.ndarray: Array of shape (n, 2) containing the Cartesian coordinates of the drones.
 
     """
-    angles = np.random.uniform(0, 2*np.pi, n)
-    # square root is used to prevent clustering at the center
-    radii = r * np.sqrt(np.random.uniform(0, 1, n))
+    total_area = np.pi * r**2
+    area_per_drone = total_area / n
+    radii_per_drone = np.sqrt(area_per_drone / np.pi)
+
+    angles = np.linspace(0, 2*np.pi, n+1)[:-1]  # equally spaced angles
+    radii = np.full(n, radii_per_drone)  # all drones have the same radius
+
 
     # convert to cartesian coordinates
     x = radii * np.cos(angles)
@@ -103,7 +107,7 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
 
     return xx, yy, grid_points, weed_density
 
-def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
+def initial_setup(config, **kwargs):
     """
     Performs the initial setup for the drone swarm optimization algorithm.
 
@@ -127,19 +131,29 @@ def initial_setup(n=20, r=1, filter_type='Kalman', **kwargs):
 
     """
     plot = kwargs['plots'] if 'plots' in kwargs else False
+    n = config.getint('INITIAL_SETUP', 'n_drones')
+    r = config.getfloat('INITIAL_SETUP', 'r_area')
+    grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
+    num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
+    bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
+    
+    filter_type = config.get('INITIAL_SETUP', 'filter_type')
+    num_particles = config.getint('INITIAL_SETUP', 'num_particles')
+
 
     # Get initial positions
-    initial_positions = distribute_drones(n, r, plot)
+    initial_positions = distribute_drones(n, r, plot, grid_resolution)
 
     # Compute Voronoi diagram within the circular boundaries
     boundary_points = np.array(
         [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
 
-    vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(
-        initial_positions, boundary_points, plot)
+    vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = \
+        voronoi.compute_voronoi_with_boundaries(initial_positions, boundary_points, plot)
 
     # Function generate weed distribution(AOIs) within the circular boundary
-    xx, yy, grid_points, weed_density = generate_weed_distribution(r, plot=plot)
+    xx, yy, grid_points, weed_density = generate_weed_distribution(
+        r, num_gaussians, bandwidth, grid_resolution=grid_resolution, plot=plot)
 
     # Initialize estimates
     if filter_type == 'Kalman':

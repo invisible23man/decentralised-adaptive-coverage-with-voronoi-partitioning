@@ -1,10 +1,12 @@
+import os
+import pickle
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from scipy.spatial import Voronoi
 import mplcursors
 import numpy as np
 from shapely.geometry import Polygon
-
+import matplotlib.animation as animation
 
 def visualize_swarm(positions, r):
     """
@@ -55,6 +57,10 @@ def plot_voronoi(all_vertices, finite_vertices, points):
 
     # Plot the points
     sc = ax.scatter(points[:, 0], points[:, 1], color='black', label='Points')
+    # Plot the points with labels
+    for i, (x, y) in enumerate(points):
+        ax.scatter(x, y, color='black')
+        ax.text(x, y, f'Drone {i}', color='red')
     # Plot the vertices
     ax.scatter(all_vertices[:, 0], all_vertices[:, 1],
                color='blue', marker='s', label='Vertices')
@@ -181,9 +187,6 @@ def visualize_final_state(all_vertices, finite_vertices, finite_regions, xx, yy,
         plt.ylim([-limit, limit])
         plt.show()
 
-
-import matplotlib.pyplot as plt
-
 def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, centers, spirals, grid_resolution=0.1):
     """
     Plot the Voronoi diagram along with the spiral paths.
@@ -196,6 +199,9 @@ def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, cent
     spirals (list): List of spiral paths for each Voronoi partition.
     """
     fig, ax = plt.subplots()
+
+    # Calculate linewidth based on grid resolution
+    linewidth = max(0.2, grid_resolution / 10)
 
     for region in finite_vertices:
         ax.fill(*zip(*region), alpha=0.4)
@@ -220,11 +226,11 @@ def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, cent
     # Add grid with specified resolution
     x_ticks = np.arange(-limit, limit, grid_resolution)
     y_ticks = np.arange(-limit, limit, grid_resolution)
-    ax.set_xticks(np.arange(-limit, limit + 1, 1), minor=False)
-    ax.set_yticks(np.arange(-limit, limit + 1, 1), minor=False)
+    ax.set_xticks(np.arange(-limit, limit + 1, grid_resolution*10), minor=False)
+    ax.set_yticks(np.arange(-limit, limit + 1, grid_resolution*10), minor=False)
     ax.set_xticks(x_ticks, minor=True)
     ax.set_yticks(y_ticks, minor=True)
-    ax.grid(True, which='minor', color='gray', linestyle='-', linewidth=0.1)
+    ax.grid(True, which='minor', color='gray', linestyle='-', linewidth=linewidth)
 
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
@@ -233,3 +239,29 @@ def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, cent
 
     plt.show()
 
+def plot_results(config):
+    all_centers = []
+    for file in os.listdir(config.get('RESULTS', 'save_directory')):
+        with open(os.path.join(config.get('RESULTS', 'save_directory'), file), "rb") as f:
+            centers = pickle.load(f)
+            all_centers.append(centers)
+
+    data = {i: {'x': [], 'y': []} for i in range(len(all_centers))}
+
+    fig, ax = plt.subplots()
+
+    def update(frame):
+        for i, centers in enumerate(all_centers):
+            x, y = centers[frame]
+            data[i]['x'].append(x)
+            data[i]['y'].append(y)
+            ax.clear()
+            for i, d in data.items():
+                ax.plot(d['x'], d['y'])
+
+    ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False)
+    plt.show()
+
+
+
+    

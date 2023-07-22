@@ -8,7 +8,7 @@ from typing import List
 from initialization import initial_setup
 from move import voronoi_coverage_with_rectangular_spirals
 from infra.parallelism import parallelize_iterations
-from robots import Robot
+from review.robots import Robot
 from utils import plots
 from tqdm import tqdm
 
@@ -33,8 +33,7 @@ time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
 # Perform initial setup
 vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
     grid_points, weed_density, initial_estimates, boundary_point, all_vertices = \
-        initial_setup(n=n_drones, r=r_area, filter_type=filter_type,
-                      num_particles=num_particles, plots=False)
+        initial_setup(config, plots=False)
 
 # Visualize the initial state
 plots.visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
@@ -45,12 +44,12 @@ spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(all_vert
     sampling_time, time_per_step)
 
 # Vizualize coverage path
-plots.plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, voronoi_centers, spiral_paths)
+plots.plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, voronoi_centers, spiral_paths, grid_resolution)
 
-drones:List[Robot] = []
-# Initialize the drones 
-for drone in range(n_drones):
-    drones.append(Robot(all_vertices, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config))
+# drones:List[Robot] = []
+# # Initialize the drones 
+# for drone in range(n_drones):
+#     drones.append(Robot(all_vertices, voronoi_centers[drone], finite_regions[drone], finite_vertices[drone], config))
 
 # new_centers = []
 # for drone in tqdm(drones, desc="Drone Progress"):

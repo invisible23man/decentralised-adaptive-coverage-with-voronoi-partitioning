@@ -269,7 +269,7 @@ def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, cent
     for region, center in zip(finite_regions, centers):
         spiral_path, sensor_values_from_spiral_path = generate_rectangular_spiral_path(center, [all_vertices[i] for i in region], 
             grid_resolution, grid_points, weed_density,
-            sampling_time, time_per_step, boundary_tolerance=0.02)
+            sampling_time, time_per_step, boundary_tolerance=0.2)
         spiral_paths.append(spiral_path)
         sensor_values.append(sensor_values_from_spiral_path)
 

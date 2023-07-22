@@ -2,7 +2,7 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from tqdm import tqdm
-from robots import Robot
+from review.robots import Robot
 from scipy.spatial import Voronoi
 
 def run_iterative_process(drone:Robot, vor:Voronoi, grid_points, weed_density, config):

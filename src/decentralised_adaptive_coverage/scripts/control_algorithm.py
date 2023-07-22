@@ -1,4 +1,5 @@
 #! /home/invisibleman/anaconda3/envs/drones/bin/python
+import sys
 from typing import List
 from move import voronoi_coverage_with_rectangular_spirals
 import rospy
@@ -7,6 +8,8 @@ from models import Robots
 import configparser
 import time
 from tqdm import tqdm
+import pickle
+import os
 
 def main():
     # Initializing ROS node.
@@ -43,6 +46,13 @@ def main():
         drone.calculate_new_voronoi_center()
 
     rospy.loginfo(f"Voronoi Centres for drone{drone.drone_id}: {drone.voronoi_center_tracker}")
+    
+    # Save the run info
+    with open(os.path.join(config.get('RESULTS', 'save_directory'), f"{drone.drone_id}_centers.pkl"), "wb") as f:
+        pickle.dump(drone.voronoi_center_tracker, f)
+
+    time.sleep(5)
+    sys.exit(1)
 
 if __name__ == '__main__':
     try:
