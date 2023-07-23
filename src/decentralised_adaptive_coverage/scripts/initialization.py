@@ -83,6 +83,10 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
 
 
     """
+
+    # Save the current state of the random number generator
+    current_random_state = np.random.get_state()
+
     # Define the grid for estimation
     x_min, x_max = -r, r
     y_min, y_max = -r, r
@@ -91,6 +95,7 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
     grid_points = np.c_[xx.ravel(), yy.ravel()]
 
     # Generate sample weed concentration data
+    np.random.seed(500)
     weed_concentration = np.concatenate([np.random.normal(loc=center, scale=[0.1, 0.05], size=(100, 2))
                                         for center in generate_kde_centers(num_gaussians, r)])
 
@@ -104,6 +109,9 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
 
     if plot:
         plots.plot_weed_distribution(xx, yy, density_map)
+
+    # Restore the random number generator state
+    np.random.set_state(current_random_state)
 
     return xx, yy, grid_points, weed_density
 

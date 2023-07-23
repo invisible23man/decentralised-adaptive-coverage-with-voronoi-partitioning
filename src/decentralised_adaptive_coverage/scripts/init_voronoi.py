@@ -4,10 +4,9 @@ import sys
 sys.path.append('/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/python3/dist-packages')
 import rospy
 from std_msgs.msg import String
-from decentralised_adaptive_coverage.msg import FieldInfoMsgs, IntList, IntListArray
 from initialization import initial_setup
 import configparser
-from utils import msg_encoder
+from utils import msg_handler
 
 
 # def create_field_info_msg(data):
@@ -48,15 +47,15 @@ def init_voronoi_node():
 
     while not rospy.is_shutdown():
         # Publish values to topics
-        pub_all_vertices.publish(msg_encoder.encode_data(data=all_vertices.tolist()))
-        pub_voronoi_centers.publish(msg_encoder.encode_data(data=voronoi_centers.tolist()))
-        pub_boundary_points.publish(msg_encoder.encode_data(data=boundary_points.tolist()))
-        pub_finite_vertices.publish(msg_encoder.encode_data(data=str(finite_vertices)))
-        pub_finite_regions.publish(msg_encoder.encode_data(data=finite_regions))
-        pub_xx.publish(msg_encoder.encode_data(data=xx.tolist()))
-        pub_yy.publish(msg_encoder.encode_data(data=yy.tolist()))
-        pub_grid_points.publish(msg_encoder.encode_data(data=grid_points.tolist()))
-        pub_weed_density.publish(msg_encoder.encode_data(data=weed_density.tolist()))
+        pub_all_vertices.publish(msg_handler.encode_data(data=all_vertices.tolist()))
+        pub_voronoi_centers.publish(msg_handler.encode_data(data=voronoi_centers.tolist()))
+        pub_boundary_points.publish(msg_handler.encode_data(data=boundary_points.tolist()))
+        pub_finite_vertices.publish(msg_handler.encode_data(data=str(finite_vertices)))
+        pub_finite_regions.publish(msg_handler.encode_data(data=finite_regions))
+        pub_xx.publish(msg_handler.encode_data(data=xx.tolist()))
+        pub_yy.publish(msg_handler.encode_data(data=yy.tolist()))
+        pub_grid_points.publish(msg_handler.encode_data(data=grid_points.tolist()))
+        pub_weed_density.publish(msg_handler.encode_data(data=weed_density.tolist()))
        
 if __name__ == '__main__':
     init_voronoi_node()

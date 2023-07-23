@@ -1,7 +1,7 @@
 import ast
 import configparser
 import numpy as np
-from filters.Kalman import KalmanFilter
+from filters.Kalman import KalmanFilter, UnscentedKalmanFilter
 from move import generate_rectangular_spiral_path
 from sensor import gaussian_sensor_model
 from shapely.geometry import Point, Polygon
@@ -10,6 +10,8 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Point as rosMsgPoint
 from PrintColours import *
 from utils import callbacks, voronoi
+from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
+from filterpy.common import Q_discrete_white_noise
 
 class Robot:
     def __init__(self, config):
@@ -18,6 +20,7 @@ class Robot:
         self.kalman_filter = None
         self.planned_path = [] 
         self.sampled_sensor_values = []
+        self.dt = None
 
 
     def set_sensor_function(self, sensor_function):
@@ -38,16 +41,22 @@ class Robot:
         initial_covariance (numpy array): Initial state covariance matrix.
         """
 
-        A = np.array([[1, 0], [0, 1]])
+        dt = self.config.getfloat('FILTER_SETUP','sampling_time')
+        self.dt = dt
+        # A = np.array([[1, 0], [0, 1]])
+        A = np.array([[1, dt], [0, 1]])
         B =  None
         H = np.array([[1, 0], [0, 1]])
         Q = np.array([[0.1, 0], [0, 0.1]])
         R = np.array([[0.1, 0], [0, 0.1]])
 
+        # noise = np.random.normal(loc=0, scale=0.1, size=A.shape)  # adjust loc and scale as needed
+        # A += noise
+
         # Define the state transition function for the EKF and UKF
         def f(state: np.ndarray) -> np.ndarray:
             # logging.debug(f"f() input shape: {state.shape}")
-            return A @ state
+            return A @ state 
 
         # Define the observation function for the EKF and UKF
         def h(state: np.ndarray) -> np.ndarray:
@@ -64,9 +73,36 @@ class Robot:
             # logging.debug(f"H_jacobian() input shape: {state.shape}")
             return H
 
+        def f_pyfilter(state, dt):
+            A = np.array([[1, dt], [0, 1]])
+            return A @ state
 
-        self.kalman_filter = KalmanFilter(A, B, H, Q, R, initial_state, initial_covariance)
+        def h_pyfilter(state):
+            return state
 
+
+        if self.config.get('FILTER_SETUP','filter_type')=='UKF':
+            # self.kalman_filter = UnscentedKalmanFilter(f, h, initial_state, initial_covariance, Q, R)
+            
+            # Initialize the sigma points
+            points = MerweScaledSigmaPoints(n=A.shape[0], alpha=1e-3, beta=2, kappa=0)
+
+            # Initialize the UKF
+            ukf = UnscentedKalmanFilter(dim_x=A.shape[0], dim_z=H.shape[0], dt=dt, points=points, fx=f_pyfilter, hx=h_pyfilter)
+            ukf.x = initial_state
+            ukf.P = initial_covariance
+
+            # Process noise
+            ukf.Q = Q_discrete_white_noise(dim=A.shape[0], dt=dt, var=0.1)
+
+            # Measurement noise
+            ukf.R = np.array([[0.1, 0], [0, 0.1]])
+           
+            self.kalman_filter = ukf
+
+        else:
+            self.kalman_filter = KalmanFilter(A, B, H, Q, R, initial_state, initial_covariance)
+        
     def update(self):
         """
         Update the estimated sensor function.
@@ -76,6 +112,9 @@ class Robot:
         """
 
         for sensor_value in self.sampled_sensor_values:
+            if self.config.get('FILTER_SETUP','filter_type')=='UKF':
+                self.kalman_filter.predict(dt=self.dt)
+            
             self.kalman_filter.update(sensor_value)
 
     def move(self):
@@ -101,6 +140,7 @@ class Drone(Robot):
         self.voronoi_center = None
         self.voronoi_region = None
         self.voronoi_center_tracker = []
+        self.all_voronoi_center_tracker = []
         # Initialize dictionaries to store parameters of the other drones
         self.other_centers = {}
         self.other_states = {}
@@ -212,8 +252,11 @@ class Drone(Robot):
             self.time_per_step, 
             self.boundary_tolerance)
 
+        self.all_voronoi_center_tracker.append(self.voronoi_centers)
+
     def initialize_kalman(self):
         if not self.move_and_sense_started:
+            rospy.loginfo("Initialized Kalman Filter")
             self.set_initial_state(self.voronoi_center, self.initial_covariance)
             self.move_and_sense_started = True
 
@@ -234,14 +277,21 @@ class Drone(Robot):
         yp = yp[in_voronoi]
 
         # Integrals over Voronoi region
-        phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.state, self.kalman_filter.covariance) for x,y in zip(xp,yp)])
-
+        if self.config.get('FILTER_SETUP','filter_type')=='UKF':
+            phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.x, self.kalman_filter.P) for x,y in zip(xp,yp)])
+        else:
+            phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.state, self.kalman_filter.covariance) for x,y in zip(xp,yp)])
+    
         if self.apply_consensus:
             self.fuse_estimates()
 
         mv = np.sum(phi_est)
         cx = np.sum(xp * phi_est) / mv
         cy = np.sum(yp * phi_est) / mv
+
+        if np.isnan(cx) or np.isnan(cy):
+            rospy.loginfo(f"Encountered KF nan. Setting to last visited point {self.planned_path[1]}")
+            (cx,cy) = self.planned_path[-1]
 
         self.voronoi_center_tracker.append(self.voronoi_center)
         self.voronoi_center = np.array([cx, cy])

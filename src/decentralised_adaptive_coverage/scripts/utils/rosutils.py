@@ -2,7 +2,7 @@ from move import generate_rectangular_spiral_path
 import rospy
 from std_msgs.msg import String
 from PrintColours import *
-from utils import msg_encoder
+from utils import msg_handler
 
 class Drone:
     def __init__(self, config):
@@ -89,23 +89,23 @@ class Drone:
         return all([self.voronoi_centers.data, self.boundary_points.data, self.finite_regions.data, self.xx.data, self.yy.data])
 
     def callback_all_vertices(self, data):
-        self.all_vertices = msg_encoder.decode_data(data)
+        self.all_vertices = msg_handler.decode_data(data)
         # rospy.loginfo("Received all_vertices: %s", self.all_vertices)
 
     def callback_voronoi_centers(self, data):
-        self.voronoi_centers = msg_encoder.decode_data(data)
+        self.voronoi_centers = msg_handler.decode_data(data)
         # rospy.loginfo("Received voronoi_centers: %s", self.voronoi_centers)
 
     def callback_boundary_points(self, data):
-        self.boundary_points = msg_encoder.decode_data(data)
+        self.boundary_points = msg_handler.decode_data(data)
         # rospy.loginfo("Received boundary_points: %s", self.boundary_points)
 
     def callback_finite_regions(self, data):
-        self.finite_regions = msg_encoder.decode_data(data)
+        self.finite_regions = msg_handler.decode_data(data)
         # rospy.loginfo("Received finite_regions: %s", self.finite_regions)
 
     def callback_xx(self, data):
-        self.xx = msg_encoder.decode_data(data)
+        self.xx = msg_handler.decode_data(data)
         # rospy.loginfo("Received xx: %s", self.xx)
 
     def callback_yy(self, data):
@@ -113,15 +113,15 @@ class Drone:
         # rospy.loginfo("Received yy: %s", self.yy)
 
     def callback_finite_vertices(self, data):
-        self.finite_vertices = msg_encoder.decode_data(data)
+        self.finite_vertices = msg_handler.decode_data(data)
         # rospy.loginfo("Received finite_vertices: %s", self.finite_vertices)
 
     def callback_grid_points(self, data):
-        self.grid_points = msg_encoder.decode_data(data)
+        self.grid_points = msg_handler.decode_data(data)
         # rospy.loginfo("Received grid_points: %s", self.grid_points)
 
     def callback_weed_density(self, data):
-        self.weed_density = msg_encoder.decode_data(data)
+        self.weed_density = msg_handler.decode_data(data)
         # rospy.loginfo("Received weed_density: %s", self.weed_density)
 
     def move_and_sense(self):

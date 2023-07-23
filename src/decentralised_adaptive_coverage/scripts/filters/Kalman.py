@@ -142,7 +142,8 @@ class UnscentedKalmanFilter(KalmanFilter):
         sigma_points[n+1:] = self.state - np.sqrt(n + lambda_) * np.linalg.cholesky(self.covariance).T
 
         # Predict sigma points
-        predicted_sigma_points = self.f(sigma_points)
+        predicted_sigma_points = np.array([self.f(sigma_point) for sigma_point in sigma_points])
+        # predicted_sigma_points = self.f(sigma_points)
 
         # Predict mean and covariance
         predicted_state = np.sum(weights_mean[:, None] * predicted_sigma_points, axis=0)

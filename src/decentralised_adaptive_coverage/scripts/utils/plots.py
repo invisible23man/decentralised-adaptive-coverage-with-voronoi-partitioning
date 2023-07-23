@@ -2,11 +2,15 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-from scipy.spatial import Voronoi
 import mplcursors
 import numpy as np
-from shapely.geometry import Polygon
 import matplotlib.animation as animation
+from matplotlib.widgets import Button
+from matplotlib.cm import ScalarMappable
+from utils import voronoi
+# from initialization import generate_weed_distribution
+
+ani = None
 
 def visualize_swarm(positions, r):
     """
@@ -235,11 +239,9 @@ def plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, cent
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
 
-
-
     plt.show()
 
-def plot_results(config, weed_distribution):
+def plot_results(config, boundary_points, xx, yy, grid_points, weed_density):
     all_centers = []
     for file in os.listdir(config.get('RESULTS', 'save_directory')):
         with open(os.path.join(config.get('RESULTS', 'save_directory'), file), "rb") as f:
@@ -262,6 +264,125 @@ def plot_results(config, weed_distribution):
     ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False)
     plt.show()
 
+def plot_results_with_voronoi(config, boundary_points, xx, yy, grid_points, weed_density):
+    all_centers = []
+
+    n = config.getint('INITIAL_SETUP', 'n_drones')
+    r = config.getfloat('INITIAL_SETUP', 'r_area')
+    grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
+    num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
+    bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
+
+    # _, _, _, weed_density = generate_weed_distribution(
+    #     r, num_gaussians, bandwidth, grid_resolution, plot=False)
+                    
+    # Assume you want to load data from "0_all_centers.pkl"
+    all_centers_file = "0_all_centers.pkl"
+
+    with open(os.path.join(config.get('RESULTS', 'save_directory'), all_centers_file), "rb") as f:
+        all_centers_data = pickle.load(f)                
+
+        for centers in all_centers_data:
+            vor, _, _, voronoi_centers, _ = voronoi.compute_voronoi_with_boundaries(
+                np.array(centers), boundary_points)
+            all_centers.append(voronoi_centers)
+
+    # print(all_centers)
+
+    fig, ax = plt.subplots()
+
+    def update(frame):
+
+        ax.clear()
+
+        # Plot Voronoi partitions
+        vor, finite_vertices, _, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(
+            np.array(all_centers[frame]), boundary_points)
+
+        # Plot bounded Voronoi diagram with finite vertices
+        for region in finite_vertices:
+            ax.fill(*zip(*region), alpha=0.4)
+
+        # Plot Voronoi centers (points)
+        ax.scatter(voronoi_centers[:, 0], voronoi_centers[:, 1], color='black', label='Points')
+
+    ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False, interval=500)
+    plt.show()
+
+def plot_results_3D_overlay(config, boundary_points, xx, yy, grid_points, weed_density):
+    global ani
+    all_centers = []
+
+    n = config.getint('INITIAL_SETUP', 'n_drones')
+    r = config.getfloat('INITIAL_SETUP', 'r_area')
+    grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
+    num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
+    bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
+    flight_height = 20
+
+    # Assume you want to load data from "0_all_centers.pkl"
+    all_centers_file = "0_all_centers.pkl"
+
+    with open(os.path.join(config.get('RESULTS', 'save_directory'), all_centers_file), "rb") as f:
+        all_centers_data = pickle.load(f)                
+
+        for centers in all_centers_data:
+            vor, _, _, voronoi_centers, _ = voronoi.compute_voronoi_with_boundaries(
+                np.array(centers), boundary_points)
+            all_centers.append(voronoi_centers)
+
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Create a button
+    axbutton = plt.axes([0.8, 0.05, 0.1, 0.075])
+    btn = Button(axbutton, '▶ Replay')
+
+    cmap = plt.get_cmap('YlGn')
+    weed_density_reshaped = np.array(weed_density).reshape(len(xx),len(xx))
+    norm = plt.Normalize(weed_density_reshaped.min(), weed_density_reshaped.max())
+    mappable = ScalarMappable(cmap=cmap, norm=norm)
+    mappable.set_array([])
+
+    def update(frame):
+        ax.clear()
+
+        # Plot weed density
+        ax.plot_surface(xx, yy, weed_density_reshaped, cmap='viridis', alpha=0.5)
+        # ax.contourf(xx, yy, weed_density_reshaped, cmap='YlGn')
+
+        # Plot the surface with the color map
+        # ax.plot_surface(xx, yy, weed_density_reshaped, facecolors=mappable.to_rgba(weed_density_reshaped))
 
 
+        # Plot Voronoi partitions
+        vor, finite_vertices, _, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(
+            np.array(all_centers[frame]), boundary_points)
+
+        # Convert Voronoi partitions to a 3D surface
+        for region in finite_vertices:
+            region = np.array(region)
+            X, Y = np.meshgrid(region[:,0], region[:,1])
+            Z = np.full(region.shape[0], flight_height-1)
+            ax.plot_trisurf(region[:,0], region[:,1], Z, alpha=0.4)
+
+        # Plot Voronoi centers (points)
+        # Create a color array with a different color for each point
+        # colors = plt.cm.viridis(np.linspace(0, 1, len(voronoi_centers)))
+        colors = 'black'
+
+        ax.scatter(voronoi_centers[:, 0], voronoi_centers[:, 1], flight_height, color=colors, label='Drones')
+        ax.set_zlim(0, 50)
+
+    ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False, interval=1000)
+    ani.save(os.path.join(config.get('RESULTS', 'anim_save_directory'),'animation.mp4'), writer='ffmpeg')
     
+    # Define a function to replay the animation
+    def replay(event):
+        global ani
+        ani = animation.FuncAnimation(fig, update, frames=len(all_centers[0]), repeat=False, interval=500)
+
+    # Connect the button to the replay function
+    btn.on_clicked(replay)
+
+    plt.show()    

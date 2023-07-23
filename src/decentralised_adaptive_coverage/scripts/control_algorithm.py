@@ -1,9 +1,5 @@
 #! /home/invisibleman/anaconda3/envs/drones/bin/python
-import sys
-from typing import List
-from move import voronoi_coverage_with_rectangular_spirals
 import rospy
-from initialization import initial_setup
 from models import Robots
 import configparser
 import time
@@ -24,7 +20,7 @@ def main():
     # Initlialize the Drone
     drone = Robots.Drone(config)
 
-    # # Wait until the drone is ready
+    # Wait until the drone is ready
     time.sleep(3)
     # while not drone.ready and not rospy.is_shutdown():
     #     rospy.loginfo("Waiting for initial messages...")
@@ -38,7 +34,8 @@ def main():
         rospy.loginfo(f"Started movement and sensing:drone{drone.drone_id}, iter:{i}")
         drone.move_and_sense()
 
-        drone.initialize_kalman()
+        drone.initialize_kalman() # One Time
+        
         rospy.loginfo(f"Started Kalman Update:drone{drone.drone_id}, iter:{i}")
         drone.update()
 
@@ -57,6 +54,8 @@ def main():
     # Save the run info
     with open(os.path.join(config.get('RESULTS', 'save_directory'), f"{drone.drone_id}_centers.pkl"), "wb") as f:
         pickle.dump(drone.voronoi_center_tracker, f)
+    with open(os.path.join(config.get('RESULTS', 'save_directory'), f"{drone.drone_id}_all_centers.pkl"), "wb") as f:
+        pickle.dump(drone.all_voronoi_center_tracker, f)
 
     # time.sleep(5)
     # sys.exit(1)
