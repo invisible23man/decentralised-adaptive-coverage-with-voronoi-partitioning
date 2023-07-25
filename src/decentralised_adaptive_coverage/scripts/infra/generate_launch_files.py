@@ -1,11 +1,11 @@
-import json
 import sys
-
 sys.path.append('/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/')
 
 import configparser
 import os
+import json
 from vehicleinfo import VehicleInfo
+from generate_world_files import create_world_file
 
 
 def generate_node_launch_files(num_drones, LAUNCHFILE):
@@ -281,24 +281,52 @@ def generate_ardupilot_launch_script(num_drones, file_path):
 
     return script
 
+def generate_gazebo_launch_file(world_name, output_file):
+    """
+    Generate a Gazebo launch file with the specified world_name.
+
+    Args:
+        world_name (str): Path to the Gazebo world file.
+        output_file (str): Path to the output launch file.
+
+    Returns:
+        None
+    """
+    launch_file_content = f"""<launch>
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find iq_sim)/worlds/{world_name}.world"/>
+    <!-- more default parameters can be changed here -->
+  </include>
+</launch>
+"""
+
+    with open(output_file, "w") as f:
+        f.write(launch_file_content)
+
 
 if __name__ == '__main__':
 
     CONFIGFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini'
-    LAUNCHFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/control.launch'
-    MAVROSLAUNCHFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/multi-apm.launch'
-    
-    # ArduPilot Global
-    VEHICLEPARAMETERDIR = '/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/default_params'
-    VEHICLEINFOFILE = '/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/vehicleinfo.py'
-    ARDUPILOTLAUNCHFILE = '~/decentralised-adaptive-coverage-with-voronoi-arduplilot.sh'
-
-
 
     # Read the number of drones from the config file
     config = configparser.ConfigParser()
     config.read(CONFIGFILE)
     num_drones = config.getint('INITIAL_SETUP', 'n_drones')
+    home_area = config.getint('GAZEBO_SETUP', 'home_area')
+    world_name = config.get('GAZEBO_SETUP', 'world_name')
+
+    LAUNCHFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/control.launch'
+    MAVROSLAUNCHFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/multi-apm.launch'
+    ARDUPILOTLAUNCHFILE = '~/decentralised-adaptive-coverage-with-voronoi-arduplilot.sh'
+    GAZEBOLAUNCHFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/iq_sim/launch/farm.launch'
+
+    # ArduPilot Global
+    VEHICLEPARAMETERDIR = '/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/default_params'
+    VEHICLEINFOFILE = '/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/vehicleinfo.py'
+
+    # Gazebo
+    WORLDFILE = f'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/iq_sim/worlds/{world_name}.world'
 
     generate_node_launch_files(num_drones, LAUNCHFILE)
     generate_mavros_launch_file(num_drones, MAVROSLAUNCHFILE)
@@ -307,4 +335,12 @@ if __name__ == '__main__':
     add_vehicle_info(num_drones, VEHICLEINFOFILE)
     generate_ardupilot_launch_script(num_drones, ARDUPILOTLAUNCHFILE)
 
+    create_world_file(num_drones, home_area, WORLDFILE)
+    generate_gazebo_launch_file(world_name, GAZEBOLAUNCHFILE)
 
+    # Repo Backup
+    WORLDFILEBACKUP = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/infra/iq_sim_local/worlds/farm.world'
+    GAZEBOLAUNCHFILEBACKUP = f'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/infra/iq_sim_local/launch/{world_name}.launch'
+
+    create_world_file(num_drones, home_area, WORLDFILEBACKUP)
+    generate_gazebo_launch_file(world_name, GAZEBOLAUNCHFILEBACKUP)
