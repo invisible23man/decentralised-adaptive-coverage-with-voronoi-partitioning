@@ -1,0 +1,7 @@
+<!-- my_package/launch/my_launch_file.launch -->
+<launch>
+  <node pkg="communication_test_package" type="circle_drawer.py" name="circle_drawer" output="screen">
+    <param name="radius" value="1.0" />
+  </node>
+  <node pkg="communication_test_package" type="time_collector.py" name="time_collector" output="screen" />
+</launch>

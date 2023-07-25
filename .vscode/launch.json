@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "ROS: Launch",
+            "type": "ros",
+            "request": "launch",
+            "target": "/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/control.launch"
+        },
+        {
+            "name": "ROS: Attach",
+            "type": "ros",
+            "request": "attach"
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "python": "/home/invisibleman/anaconda3/envs/drones/bin/python",
@@ -26,6 +37,14 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "ROS: Python Debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/decentralised_adaptive_coverage/scripts/init_voronoi.py",
+            "args": [],
+            "cwd": "${workspaceFolder}",
         }
     ],
     "compounds": [

@@ -1,0 +1,5 @@
+<launch>
+    <!-- Launch init_voronoi_node -->
+    <node pkg="decentralised_adaptive_coverage" type="init_voronoi.py" name="init_voronoi_node" output="screen"/>
+    
+</launch>
