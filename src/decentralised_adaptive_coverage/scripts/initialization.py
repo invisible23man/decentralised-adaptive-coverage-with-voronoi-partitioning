@@ -1,7 +1,7 @@
-# %%
 import numpy as np
 from utils import plots, voronoi
 from sklearn.neighbors import KernelDensity
+
 
 def distribute_drones(n, r, plot=False, grid_resolution=0.1):
     """
@@ -23,7 +23,6 @@ def distribute_drones(n, r, plot=False, grid_resolution=0.1):
 
     angles = np.linspace(0, 2*np.pi, n+1)[:-1]  # equally spaced angles
     radii = np.full(n, radii_per_drone)  # all drones have the same radius
-
 
     # convert to cartesian coordinates
     x = radii * np.cos(angles)
@@ -65,7 +64,8 @@ def generate_kde_centers(num_centers, radius):
         centers.append([x, y])
     return np.array(centers)
 
-def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolution = 0.1, plot=False):
+
+def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolution=0.1, plot=False):
     """
     Generate a weed concentration distribution within a circular boundary.
 
@@ -115,6 +115,7 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
 
     return xx, yy, grid_points, weed_density
 
+
 def initial_setup(config, **kwargs):
     """
     Performs the initial setup for the drone swarm optimization algorithm.
@@ -144,20 +145,26 @@ def initial_setup(config, **kwargs):
     grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
     num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
     bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
-    
+    boundary_point_resolution = config.getint('VORONOI_SETUP','boundary_point_resolution')
+
     filter_type = config.get('INITIAL_SETUP', 'filter_type')
     num_particles = config.getint('INITIAL_SETUP', 'num_particles')
-
 
     # Get initial positions
     initial_positions = distribute_drones(n, r, plot, grid_resolution)
 
     # Compute Voronoi diagram within the circular boundaries
-    boundary_points = np.array(
-        [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
+    # boundary_points = np.array(
+    #     [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, boundary_point_resolution)])
+    r_exterior = 1.7*r
+    boundary_points = np.array([[r_exterior*np.cos(theta), r_exterior*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
+
+
 
     vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = \
-        voronoi.compute_voronoi_with_boundaries(initial_positions, boundary_points, plot)
+        voronoi.compute_voronoi_with_boundaries(
+            initial_positions, boundary_points, plot)
+            # initial_positions, (exterior_boundary_points,boundary_points), plot)
 
     # Function generate weed distribution(AOIs) within the circular boundary
     xx, yy, grid_points, weed_density = generate_weed_distribution(
@@ -165,14 +172,18 @@ def initial_setup(config, **kwargs):
 
     # Initialize estimates
     if filter_type == 'Kalman':
-        initial_estimates = [(position, r**2 * np.eye(2)) for position in initial_positions]
+        initial_estimates = [(position, r**2 * np.eye(2))
+                             for position in initial_positions]
     elif filter_type == 'Particle':
         if 'num_particles' in kwargs:
             num_particles = kwargs['num_particles']
-            initial_estimates = [distribute_drones(num_particles, r) for _ in range(n)]
+            initial_estimates = [distribute_drones(
+                num_particles, r) for _ in range(n)]
         else:
-            raise ValueError("The number of particles ('num_particles') should be provided for the Particle filter.")
+            raise ValueError(
+                "The number of particles ('num_particles') should be provided for the Particle filter.")
     else:
-        raise ValueError("filter_type should be either 'Kalman' or 'Particle'.")
+        raise ValueError(
+            "filter_type should be either 'Kalman' or 'Particle'.")
 
     return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates, boundary_points, all_vertices

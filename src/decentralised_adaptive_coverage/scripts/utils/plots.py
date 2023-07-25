@@ -1,5 +1,6 @@
 import os
 import pickle
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import mplcursors
@@ -8,8 +9,9 @@ import matplotlib.animation as animation
 from matplotlib.widgets import Button
 from matplotlib.cm import ScalarMappable
 from utils import voronoi
-# from initialization import generate_weed_distribution
 
+# Plot Settings and Globals
+matplotlib.use('TkAgg')
 ani = None
 
 def visualize_swarm(positions, r):
@@ -56,6 +58,9 @@ def plot_voronoi(all_vertices, finite_vertices, points):
     """
     fig, ax = plt.subplots()
 
+    ax.add_patch(Circle((0, 0), 50, fill=False, color='black',
+                linestyle='--', label='Coverage Area'))
+
     for region in finite_vertices:
         ax.fill(*zip(*region), alpha=0.4)
 
@@ -76,8 +81,12 @@ def plot_voronoi(all_vertices, finite_vertices, points):
     buffer = 0.0  # Set the buffer value as per your requirement
     limit = np.ceil(max_range + buffer)
 
-    ax.set_xlim(-limit, limit)
-    ax.set_ylim(-limit, limit)
+    # ax.set_xlim(-limit, limit)
+    # ax.set_ylim(-limit, limit)
+
+    ax.set_xlim(-50, 50)
+    ax.set_ylim(-50, 50)
+
 
     cursor = mplcursors.cursor(sc, hover=True)
     cursor.connect(
@@ -272,10 +281,7 @@ def plot_results_with_voronoi(config, boundary_points, xx, yy, grid_points, weed
     grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
     num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
     bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
-
-    # _, _, _, weed_density = generate_weed_distribution(
-    #     r, num_gaussians, bandwidth, grid_resolution, plot=False)
-                    
+       
     # Assume you want to load data from "0_all_centers.pkl"
     all_centers_file = "0_all_centers.pkl"
 
@@ -353,7 +359,6 @@ def plot_results_3D_overlay(config, boundary_points, xx, yy, grid_points, weed_d
 
         # Plot the surface with the color map
         # ax.plot_surface(xx, yy, weed_density_reshaped, facecolors=mappable.to_rgba(weed_density_reshaped))
-
 
         # Plot Voronoi partitions
         vor, finite_vertices, _, voronoi_centers, all_vertices = voronoi.compute_voronoi_with_boundaries(

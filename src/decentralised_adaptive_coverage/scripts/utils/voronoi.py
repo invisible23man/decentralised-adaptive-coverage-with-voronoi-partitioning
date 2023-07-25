@@ -33,7 +33,8 @@ def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
     finite_vertices = [vor.vertices[region] for region in finite_regions]
 
     # Create list of original points corresponding to finite regions
-    voronoi_centers = np.array([points_with_boundary[i] for i in vor.point_region[:len(points)] if vor.regions[i] in finite_regions])
+    voronoi_centers = np.array([points_with_boundary[i] for i in vor.point_region[:len(
+        points)] if vor.regions[i] in finite_regions])
     all_vertices = vor.vertices
 
     if plot:
@@ -85,6 +86,7 @@ def get_voronoi_centroids(vor, finite_regions):
 
     return np.array(centroids)
 
+
 def compute_graph_laplacian(points):
     """
     Computes the graph Laplacian from Delaunay triangulation.
@@ -110,7 +112,8 @@ def compute_graph_laplacian(points):
     for r1, r2 in edges:
         points_indices = np.intersect1d(tri.neighbors[r1], tri.neighbors[r2])
         if len(points_indices) == 2:
-            edge_len = np.linalg.norm(points[points_indices[1]] - points[points_indices[0]])
+            edge_len = np.linalg.norm(
+                points[points_indices[1]] - points[points_indices[0]])
         else:
             edge_len = 0
         L[r1, r2] = -edge_len

@@ -8,19 +8,6 @@ from initialization import initial_setup
 import configparser
 from utils import msg_handler
 
-
-# def create_field_info_msg(data):
-#     field_info = FieldInfoMsgs()
-#     int_list_array = IntListArray()
-
-#     for sublist in data:
-#         int_list = IntList(data=sublist)
-#         int_list_array.lists.append(int_list)
-
-#     field_info.data = int_list_array
-
-#     return field_info
-
 def init_voronoi_node():
     # Initialize ROS node
     rospy.init_node('init_voronoi_node', anonymous=True)

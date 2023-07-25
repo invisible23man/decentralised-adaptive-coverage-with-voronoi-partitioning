@@ -2,8 +2,6 @@
 
 import configparser
 from multiprocessing import Pool, Value
-import threading
-import time
 from typing import List
 from initialization import initial_setup
 from move import voronoi_coverage_with_rectangular_spirals
@@ -11,9 +9,6 @@ from infra.parallelism import parallelize_iterations
 from review.robots import Robot
 from utils import plots
 from tqdm import tqdm
-
-
-
 
 # Load configuration
 config = configparser.ConfigParser()
@@ -62,15 +57,15 @@ plots.plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, vo
 
 # parallelize_iterations(drones, vor, grid_points, weed_density, config)
     
-def control_algorithm(drone:Robot, drones:List[Robot], sampling_time):
-    while True:
-        start_time = time.time()  # Start of the sampling period
+# def control_algorithm(drone:Robot, drones:List[Robot], sampling_time):
+#     while True:
+#         start_time = time.time()  # Start of the sampling period
 
-        # The robot moves and takes measurements until the sampling time is over
-        while time.time() - start_time < sampling_time:
-            drone.move_and_sense(vor, grid_points, weed_density)
-            # Take measurements and update parameters based on the robot's own sensor information
-            drone.update()
+#         # The robot moves and takes measurements until the sampling time is over
+#         while time.time() - start_time < sampling_time:
+#             drone.move_and_sense(vor, grid_points, weed_density)
+#             # Take measurements and update parameters based on the robot's own sensor information
+#             drone.update()
 
         # After the sampling time is over, the robot checks its neighbors
         # and uses their information to update parameters

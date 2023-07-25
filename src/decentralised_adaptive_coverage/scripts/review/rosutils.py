@@ -1,7 +1,7 @@
 from move import generate_rectangular_spiral_path
 import rospy
 from std_msgs.msg import String
-from PrintColours import *
+from utils.PrintColours import *
 from utils import msg_handler
 
 class Drone:
