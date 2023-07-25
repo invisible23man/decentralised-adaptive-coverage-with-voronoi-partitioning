@@ -7,6 +7,11 @@ from tqdm import tqdm
 import pickle
 import os
 
+# Import the API.
+from iq_gnc.py_gnc_functions_swarm import *
+# To print colours (optional).
+from iq_gnc.PrintColours import *
+
 def main():
     # Initializing ROS node.
     rospy.init_node("drone_controller" + rospy.get_namespace().replace('/', ''), anonymous=True)

@@ -1,0 +1,7 @@
+mavros/test_mavros
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/cmake.lock /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/./cmake.lock
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/share/test_mavros/cmake/test_mavrosConfig.cmake /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/share/test_mavros/cmake/test_mavrosConfig.cmake
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/share/test_mavros/cmake/test_mavrosConfig-version.cmake /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/share/test_mavros/cmake/test_mavrosConfig-version.cmake
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/lib/libmavros_sitl_test.so /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/libmavros_sitl_test.so
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/lib/pkgconfig/test_mavros.pc /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/pkgconfig/test_mavros.pc
+/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/.private/test_mavros/lib/test_mavros/sitl_test_node /home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/test_mavros/sitl_test_node
