@@ -1,8 +1,10 @@
+from typing import Optional
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 import numpy as np
-
+from iq_gnc.py_gnc_functions_swarm import rospy, gnc_api, Odometry
 from sensor import sample_weed_density, sense
+from utils.reference_frames import ecef_to_enu, lla_to_ecef
 
 def boustrophedon_points(center, vertices, grid_resolution, max_time, start_time=0):
     """
@@ -135,7 +137,6 @@ def generate_rectangular_spiral_path(center, vertices,
     """
     x, y = center
     stride = 1  # Initial stride length
-    stride_second_before = 1  # Stride length of the second step before the current one
     spiral_path = []
     sensor_values = []
     current_time = 0
@@ -193,7 +194,7 @@ def generate_rectangular_spiral_path(center, vertices,
             break
 
         # Increment the stride length based on the second step before the current one
-        stride += stride_second_before
+        stride += 1
         
         # Move left for the stride length
         for _ in range(stride):
@@ -237,10 +238,7 @@ def generate_rectangular_spiral_path(center, vertices,
         sensor_values.append(sensor_measurements)
 
         # Increment the stride length based on the second step before the current one
-        stride += stride_second_before
-
-        # Update the stride length of the second step before the current one
-        stride_second_before = stride - stride_second_before
+        stride += 1
 
     return np.array(spiral_path), np.array(sensor_values)
 
@@ -267,7 +265,8 @@ def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, cent
     spiral_paths = []
     sensor_values = []
     for region, center in zip(finite_regions, centers):
-        spiral_path, sensor_values_from_spiral_path = generate_rectangular_spiral_path(
+        # spiral_path, sensor_values_from_spiral_path = generate_rectangular_spiral_path(
+        spiral_path, sensor_values_from_spiral_path = generate_trajectory(
             center, [all_vertices[i] for i in region], 
             grid_resolution, grid_points, weed_density,
             sampling_time, time_per_step, boundary_tolerance=0.2)
@@ -275,3 +274,112 @@ def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, cent
         sensor_values.append(sensor_values_from_spiral_path)
 
     return spiral_paths, sensor_values
+
+def move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolerance):
+    # Move the drone in the specified direction (dx, dy) from the current point (x, y) within the Voronoi region.
+    x_new, y_new = x + dx * grid_resolution, y + dy * grid_resolution
+    if voronoi_region.contains(Point(x_new, y_new)):
+        return x_new, y_new
+    else:
+        if dx != 0:
+            x_truncated = np.round(x / grid_resolution + boundary_tolerance) * grid_resolution
+            return x_truncated, y
+        else:
+            y_truncated = np.round(y / grid_resolution + boundary_tolerance) * grid_resolution
+            return x, y_truncated
+
+
+def generate_trajectory(center, vertices, grid_resolution, grid_points, weed_density,
+    sampling_time, time_per_step, boundary_tolerance=0.02, gnc_drone: Optional[gnc_api]= None):
+    """
+    Generate a rectangular spiral path starting from the center within the Voronoi region and perform the sensing process.
+
+    Args:
+        center (tuple): The (x, y) coordinates of the center.
+        grid_resolution (float): The distance between adjacent points in the grid.
+        sampling_time (float): Total available time for sampling.
+        time_per_step (float): Time taken for each step.
+        vertices (np.array): Vertices of the Voronoi region.
+        tolerance (float): Tolerance value to truncate coordinates outside the polygon (default is 0.02).
+        weed_density (np.array): 2D array representing the weed densities (optional).
+
+    Returns:
+        np.array: Points on the rectangular spiral path within the Voronoi region.
+        np.array: Sensor values (weed concentrations) at each point on the path.
+
+    """
+    x, y = center
+    stride = 1  # Initial stride length
+    strides_since_stride_increment = 0  # Counter for the number of strides taken since the last stride increment
+    spiral_path = []
+    sensor_values = []
+    current_time = 0
+
+    voronoi_region = Polygon(vertices)  # Create the Voronoi region polygon
+
+    while current_time < sampling_time:
+        spiral_path.append([x, y])
+        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
+                                                  weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
+        sensor_values.append(sensor_measurements)
+
+        # List of direction vectors (right, up, left, down)
+        directions = [(grid_resolution, 0), (0, grid_resolution), (-grid_resolution, 0), (0, -grid_resolution)]
+
+        for _ in range(4):
+            dx, dy = directions.pop(0)
+            for _ in range(stride):
+                x_new, y_new = move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolerance)
+                x, y = x_new, y_new
+                spiral_path.append([x, y])
+
+                if gnc_drone:
+                    # Get the destination pose in local frame.
+                    ecef_x, ecef_y, ecef_z = lla_to_ecef(x,y,3)
+                    enu_x, enu_y, enu_z = ecef_to_enu(ecef_x, ecef_y, ecef_z)
+
+                    # Create the Odometry message with ENU coordinates
+                    destination = Odometry()
+
+                    # Set the position (ENU coordinates)
+                    destination.pose.pose.position.x = enu_x
+                    destination.pose.pose.position.y = enu_y
+                    destination.pose.pose.position.z = enu_z
+
+                    # Set the orientation (quaternion - assuming you have orientation information)
+                    destination.pose.pose.orientation.x = 0.0
+                    destination.pose.pose.orientation.y = 0.0
+                    destination.pose.pose.orientation.z = 0.0
+                    destination.pose.pose.orientation.w = 1.0  # Assuming no rotation for simplicity
+
+                    destination_pose_local = gnc_drone.enu_2_local(destination, gnc_drone.local_offset_g)
+                    gnc_drone.set_destination(
+                        destination_pose_local.x,
+                        destination_pose_local.y,
+                        destination_pose_local.z,
+                        psi=0,
+                    )
+                    # gnc_drone.set_destination(x,y,z=3, psi =3)
+                    rate = rospy.Rate(3)
+                    rate.sleep()
+                    while not gnc_drone.check_waypoint_reached():
+                        pass
+
+                sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
+                                        weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
+                sensor_values.append(sensor_measurements)
+
+                current_time += time_per_step
+                if current_time >= sampling_time:
+                    break
+
+            strides_since_stride_increment += 1
+            if strides_since_stride_increment >= 2:  # Increment stride length every 2 strides
+                stride += 1
+                strides_since_stride_increment = 0
+
+
+            if current_time >= sampling_time:
+                break
+
+    return np.array(spiral_path), np.array(sensor_values)

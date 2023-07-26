@@ -1046,7 +1046,34 @@ def generate_drones_in_grid(area_size, num_drones, distance=3, pose=[0,1.57,0]):
 
     return drones
 
-def create_world_file(num_of_drones, area_size, file_path):
+def generate_coverage_area(coverage_radii):
+    coverage_area = f"""
+        <model name="circular_border">
+        <pose>5 5 10 0 0 0</pose>
+        <link name="link">
+            <visual name="visual">
+            <geometry>
+                <cylinder>
+                <radius>{coverage_radii}</radius>
+                <length>1</length>
+                </cylinder>
+            </geometry>
+            <material>
+                <ambient>1 0 0 1</ambient>
+                <diffuse>1 0 0 1</diffuse>
+                <specular>1 1 1 1</specular>
+                <emissive>0 0 0 0</emissive>
+                <shader type="vertex" name="default">
+                <normal_map>__default__</normal_map>
+                </shader>
+            </material>
+            </visual>
+        </link>
+        </model>
+    """
+    return coverage_area
+
+def create_world_file(num_of_drones, home_area, coverage_radii, file_path):
     world_file = open(file_path, "w")
 
     world_file.write("<sdf version='1.7'>\n")
@@ -1055,7 +1082,8 @@ def create_world_file(num_of_drones, area_size, file_path):
     world_file.write(generate_ground_plane())
     world_file.write(generate_light())
 
-    for drone in generate_drones_in_grid(area_size, num_of_drones):
+    # world_file.write(generate_coverage_area(coverage_radii))
+    for drone in generate_drones_in_grid(home_area, num_of_drones):
         world_file.write(drone)
 
     world_file.write(generate_gravity())

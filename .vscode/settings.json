@@ -5,7 +5,5 @@
         "/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/",
         "/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/python3/dist-packages",
         "/opt/ros/noetic/lib/python3/dist-packages",
-
-
     ]
 }

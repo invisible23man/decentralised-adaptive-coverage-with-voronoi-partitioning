@@ -1,17 +1,18 @@
 import ast
 import configparser
 import numpy as np
-from filters.Kalman import KalmanFilter, UnscentedKalmanFilter
-from move import generate_rectangular_spiral_path
-from sensor import gaussian_sensor_model
-from shapely.geometry import Point, Polygon
 import rospy
+from iq_gnc.py_gnc_functions_swarm import gnc_api
+from iq_gnc.PrintColours import *
 from std_msgs.msg import String
 from geometry_msgs.msg import Point as rosMsgPoint
-from utils.PrintColours import *
 from utils import callbacks, voronoi
+from filters.Kalman import KalmanFilter, UnscentedKalmanFilter
 from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
 from filterpy.common import Q_discrete_white_noise
+from shapely.geometry import Point, Polygon
+from move import generate_rectangular_spiral_path, generate_trajectory
+from sensor import gaussian_sensor_model
 
 class Robot:
     def __init__(self, config):
@@ -162,6 +163,31 @@ class Drone(Robot):
         self.move_and_sense_started = False
         self.apply_consensus = False
 
+        # GNC API
+        self.enable_physics_simulation = self.config.getboolean('GAZEBO_SETUP','enable_physics_simulation')
+        if self.enable_physics_simulation:
+            self.drone = gnc_api()
+            # Wait for FCU connection.
+            self.drone.wait4connect()
+            # Wait for the mode to be switched.
+            # drone.wait4start()
+            self.drone.set_mode("GUIDED")
+
+            # Create local reference frame.
+            self.drone.initialize_local_frame()
+            # Request takeoff with an altitude of 3m.
+            self.drone.takeoff(3)
+            # Specify control loop rate. We recommend a low frequency to not over load the FCU with messages. Too many messages will cause the drone to be sluggish.
+            self.rate = rospy.Rate(3)
+
+            self.rate.sleep()
+            # self.drone.set_destination(3,0,3,0)
+            # self.rate.sleep()
+            # while not self.drone.check_waypoint_reached():
+                # pass    
+            # self.drone.land()
+
+
     def setup_publishers(self):
         self.center_pub = rospy.Publisher(f'/drone{self.drone_id}/center', rosMsgPoint, queue_size=10)
 
@@ -242,7 +268,8 @@ class Drone(Robot):
             self.voronoi_vertices = self.voronoi_vertices.replace('array(', '').replace(')', '')
             self.voronoi_vertices = np.array(ast.literal_eval(self.voronoi_vertices)[self.drone_id])
 
-        self.planned_path, self.sampled_sensor_values = generate_rectangular_spiral_path(
+        # self.planned_path, self.sampled_sensor_values = generate_rectangular_spiral_path(
+        self.planned_path, self.sampled_sensor_values = generate_trajectory(
             self.voronoi_center, 
             [self.all_vertices[i] for i in self.voronoi_region], 
             self.grid_resolution, 
@@ -250,7 +277,8 @@ class Drone(Robot):
             self.weed_density,
             self.sampling_time, 
             self.time_per_step, 
-            self.boundary_tolerance)
+            self.boundary_tolerance,
+            self.drone if self.enable_physics_simulation else None)
 
         self.all_voronoi_center_tracker.append(self.voronoi_centers)
 
