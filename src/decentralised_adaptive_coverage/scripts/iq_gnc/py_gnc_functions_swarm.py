@@ -20,6 +20,9 @@ class gnc_api:
     def __init__(self):
         """This function is called at the beginning of a program and will start of the communication links to the FCU.
         """
+        self.drone_id = None
+        self.rate = None
+
         self.current_state_g = State()
         self.current_pose_g = Odometry()
         self.neighbour_pose_g = Odometry()

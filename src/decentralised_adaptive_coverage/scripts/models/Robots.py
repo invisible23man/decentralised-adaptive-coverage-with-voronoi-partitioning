@@ -13,6 +13,8 @@ from filterpy.common import Q_discrete_white_noise
 from shapely.geometry import Point, Polygon
 from move import generate_rectangular_spiral_path, generate_trajectory
 from sensor import gaussian_sensor_model
+from gazebo_msgs.msg import ModelStates
+import tf2_ros
 
 class Robot:
     def __init__(self, config):
@@ -128,6 +130,8 @@ class Drone(Robot):
         self.sampling_time = config.getint('SIMULATION_SETUP', 'sampling_time')
         self.time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
         self.boundary_tolerance = 0.02
+        self.enable_physics_simulation = self.config.getboolean('GAZEBO_SETUP','enable_physics_simulation')
+
 
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
@@ -164,9 +168,9 @@ class Drone(Robot):
         self.apply_consensus = False
 
         # GNC API
-        self.enable_physics_simulation = self.config.getboolean('GAZEBO_SETUP','enable_physics_simulation')
         if self.enable_physics_simulation:
             self.drone = gnc_api()
+            self.drone.drone_id = self.drone_id
             # Wait for FCU connection.
             self.drone.wait4connect()
             # Wait for the mode to be switched.
@@ -177,10 +181,22 @@ class Drone(Robot):
             self.drone.initialize_local_frame()
             # Request takeoff with an altitude of 3m.
             self.drone.takeoff(3)
+
+            # Wait for the drone to reach the desired takeoff height.
+            while True:
+                self.drone_position = self.drone.get_current_location()
+                altitude = self.drone_position.z
+                if altitude >= 3:
+                    break
+                rospy.sleep(1)  # Sleep for 1 second before checking the altitude again.
+
             # Specify control loop rate. We recommend a low frequency to not over load the FCU with messages. Too many messages will cause the drone to be sluggish.
             self.rate = rospy.Rate(3)
-
             self.rate.sleep()
+
+            self.drone_position = self.drone.get_current_location()
+            rospy.loginfo(f"Drone Position G {self.drone_id}:{self.drone.current_pose_g.pose.pose.position}")
+
             # self.drone.set_destination(3,0,3,0)
             # self.rate.sleep()
             # while not self.drone.check_waypoint_reached():
@@ -249,11 +265,29 @@ class Drone(Robot):
                     self.callback_handler.center_callback, 
                     callback_args=i)
 
+        if self.enable_physics_simulation:
+            self.model_states_sub = rospy.Subscriber(
+                '/gazebo/model_states', 
+                ModelStates, 
+                self.callback_handler.mavros_set_home_callback, 
+                self.drone_id
+            )
+
+            # Unsubscribe after receiving the data once
+            self.model_states_sub.unregister()
+            
+            # Create a tf2_ros.TransformBroadcaster
+            self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+            rospy.loginfo(f"Transform Broadcasted for {self.drone_id}")
+
+
+
     def unsubscribe_initial_topics(self):
         self.all_vertices_sub.unregister()
         self.voronoi_centers_sub.unregister()
         self.finite_regions_sub.unregister()
         self.finite_vertices_sub.unregister()
+
 
     @property
     def ready(self):
