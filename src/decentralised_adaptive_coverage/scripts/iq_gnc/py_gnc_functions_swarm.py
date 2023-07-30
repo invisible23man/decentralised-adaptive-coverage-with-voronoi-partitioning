@@ -35,6 +35,8 @@ class gnc_api:
         self.correction_heading_g = 0.0
         self.local_desired_heading_g = 0.0
 
+        self.transformation_matrix = None
+
         self.ns = rospy.get_namespace()
         self.neighbor_ns = rospy.get_param('~neighbour_namespace', '/')
 

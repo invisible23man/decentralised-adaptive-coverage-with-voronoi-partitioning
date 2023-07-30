@@ -24,7 +24,7 @@ gazebo_drone_poses = {}
 
 # Create a tf2_ros.Buffer and tf2_ros.TransformListener
 tf_buffer = tf2_ros.Buffer()
-tf_listener = tf2_ros.TransformListener(tf_buffer)
+# tf_listener = tf2_ros.TransformListener(tf_buffer)
 
 def model_states_callback(data, drone_number):
     """
@@ -72,10 +72,11 @@ def model_states_callback(data, drone_number):
         }
     }
     transformation_matrix = compute_transformation_matrix(drone_pose, mavros_home)
-
+    
     # Broadcast the transformation matrix
     # broadcast_transformation_matrix(transformation_mastrix, "world", f"drone{drone_number}")
-
+    return transformation_matrix
+    
 def compute_transformation_matrix(gazebo_pose, mavros_home):
     """
     Compute the transformation matrix from Gazebo frame to MAVROS frame based on the drone pose and home position.
@@ -154,38 +155,29 @@ def broadcast_transformation_matrix(transform_matrix, parent_frame_id, child_fra
     tf_broadcaster = tf2_ros.TransformBroadcaster()
     tf_broadcaster.sendTransform(transform_msg)
 
-def apply_transformation_matrix(x, y, z, drone_number):
+def apply_transformation_matrix(x, y, z, transformation_matrix):
     """
     Apply the transformation matrix to convert Gazebo coordinates to MAVROS coordinates.
 
     :param x: Gazebo X-coordinate.
     :param y: Gazebo Y-coordinate.
     :param z: Gazebo Z-coordinate.
-    :param drone_number: The drone number for which to retrieve the transformation matrix.
+    :param transformation_matrix: The 4x4 transformation matrix from Gazebo frame to MAVROS frame.
+
     :return: Tuple containing the MAVROS ENU coordinates (enu_x, enu_y, enu_z).
     """
-    # Wait for the tf2 buffer to become available
-    while not rospy.is_shutdown() and not tf_buffer.can_transform(f"world", f"drone{drone_number}", rospy.Time()):
-        rospy.sleep(0.1)
+    # Create a vector representing the Gazebo coordinates
+    gazebo_coords = np.array([x, y, z, 1.0])
 
-    # Create a PointStamped message for the Gazebo coordinates
-    point_gazebo = PointStamped()
-    point_gazebo.header.stamp = rospy.Time(0)
-    point_gazebo.header.frame_id = "world"
-    point_gazebo.point.x = x
-    point_gazebo.point.y = y
-    point_gazebo.point.z = z
+    # Perform the coordinate transformation using matrix multiplication
+    mavros_coords = np.dot(transformation_matrix, gazebo_coords)
 
-    # Transform the Gazebo coordinates to MAVROS coordinates using the tf2 buffer
-    try:
-        point_mavros = tf_buffer.transform(point_gazebo, f"drone{drone_number}")
-        mavros_x = point_mavros.point.x
-        mavros_y = point_mavros.point.y
-        mavros_z = point_mavros.point.z
-        return mavros_x, mavros_y, mavros_z
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        rospy.logwarn(f"Failed to transform coordinates: {e}")
-        return None, None, None
+    # Extract the MAVROS ENU coordinates
+    mavros_x = mavros_coords[0]
+    mavros_y = mavros_coords[1]
+    mavros_z = mavros_coords[2]
+
+    return mavros_x, mavros_y, mavros_z
 
 if __name__ == "__main__":
     rospy.init_node('get_gazebo_home_and_transform_to_mavros_home', anonymous=True)

@@ -11,7 +11,7 @@ from filters.Kalman import KalmanFilter, UnscentedKalmanFilter
 from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
 from filterpy.common import Q_discrete_white_noise
 from shapely.geometry import Point, Polygon
-from move import generate_rectangular_spiral_path, generate_trajectory
+from move import generate_trajectory
 from sensor import gaussian_sensor_model
 from gazebo_msgs.msg import ModelStates
 import tf2_ros
@@ -46,7 +46,6 @@ class Robot:
 
         dt = self.config.getfloat('FILTER_SETUP','sampling_time')
         self.dt = dt
-        # A = np.array([[1, 0], [0, 1]])
         A = np.array([[1, dt], [0, 1]])
         B =  None
         H = np.array([[1, 0], [0, 1]])
@@ -273,14 +272,17 @@ class Drone(Robot):
                 self.drone_id
             )
 
+            # Wait for the transformation matrix to become available
+            while self.drone.transformation_matrix is None:
+                rospy.loginfo("Waiting for transformation matrix for {self.drone_id}")
+                rospy.sleep(0.1)
+
             # Unsubscribe after receiving the data once
             self.model_states_sub.unregister()
             
             # Create a tf2_ros.TransformBroadcaster
-            self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+            # self.tf_broadcaster = tf2_ros.TransformBroadcaster()
             rospy.loginfo(f"Transform Broadcasted for {self.drone_id}")
-
-
 
     def unsubscribe_initial_topics(self):
         self.all_vertices_sub.unregister()

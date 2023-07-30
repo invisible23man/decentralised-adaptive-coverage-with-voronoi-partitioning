@@ -94,156 +94,6 @@ def generate_spiral_path(center, vertices, resolution, sampling_time, time_per_s
 
     return np.array(points)
 
-def voronoi_coverage_with_spirals(vor, finite_regions, centers, sampling_time, time_per_step, grid_resolution):
-    """
-    Compute spiral paths for each Voronoi partition and return them.
-
-    Parameters:
-    vor (scipy.spatial.Voronoi): Voronoi object.
-    finite_regions (list): A list of finite regions in the Voronoi diagram.
-    centers (np.array): The centers of the Voronoi partitions.
-    sampling_time (float): Total time for sampling.
-    time_per_step (float): Time taken for each step.
-    grid_resolution (float): Resolution of the grid.
-
-    Returns:
-    list: List of spiral paths for each Voronoi partition.
-    """
-    spirals = []
-    for region, center in zip(finite_regions, centers):
-        spiral_path = generate_spiral_path(center, np.array([vor.vertices[i] for i in region]), grid_resolution, sampling_time, time_per_step)
-        spirals.append(spiral_path)
-
-    return spirals
-
-def generate_rectangular_spiral_path(center, vertices, 
-    grid_resolution, grid_points, weed_density,
-    sampling_time, time_per_step, boundary_tolerance=0.02):
-    """
-    Generate a rectangular spiral path starting from the center within the Voronoi region and perform the sensing process.
-
-    Args:
-        center (tuple): The (x, y) coordinates of the center.
-        grid_resolution (float): The distance between adjacent points in the grid.
-        sampling_time (float): Total available time for sampling.
-        time_per_step (float): Time taken for each step.
-        vertices (np.array): Vertices of the Voronoi region.
-        tolerance (float): Tolerance value to truncate coordinates outside the polygon (default is 0.02).
-        weed_density (np.array): 2D array representing the weed densities (optional).
-
-    Returns:
-        np.array: Points on the rectangular spiral path within the Voronoi region.
-        np.array: Sensor values (weed concentrations) at each point on the path.
-
-    """
-    x, y = center
-    stride = 1  # Initial stride length
-    spiral_path = []
-    sensor_values = []
-    current_time = 0
-
-    voronoi_region = Polygon(vertices)  # Create the Voronoi region polygon
-
-    while current_time < sampling_time:
-        spiral_path.append([x, y])
-        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
-                                weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
-        sensor_values.append(sensor_measurements)
-
-        # Move right for the stride length
-        for _ in range(stride):
-            x += grid_resolution
-            spiral_path.append([x, y])
-            current_time += time_per_step
-            if current_time >= sampling_time:
-                break
-
-            # Check if the point is outside the Voronoi region
-            if not voronoi_region.contains(Point(x, y)):
-                x_truncated = np.round(x / grid_resolution - boundary_tolerance) * grid_resolution
-                spiral_path[-1][0] = x_truncated
-                x -= grid_resolution  # Move back one step
-                break
-
-        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
-                                weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
-        sensor_values.append(sensor_measurements)
-
-        if current_time >= sampling_time:
-            break
-
-        # Move up for the stride length
-        for _ in range(stride):
-            y += grid_resolution
-            spiral_path.append([x, y])
-            current_time += time_per_step
-            if current_time >= sampling_time:
-                break
-
-            # Check if the point is outside the Voronoi region
-            if not voronoi_region.contains(Point(x, y)):
-                y_truncated = np.round(y / grid_resolution - boundary_tolerance) * grid_resolution
-                spiral_path[-1][1] = y_truncated
-                y -= grid_resolution  # Move back one step
-                break
-
-        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
-                                weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
-        sensor_values.append(sensor_measurements)
-
-        if current_time >= sampling_time:
-            break
-
-        # Increment the stride length based on the second step before the current one
-        stride += 1
-        
-        # Move left for the stride length
-        for _ in range(stride):
-            x -= grid_resolution
-            spiral_path.append([x, y])
-            current_time += time_per_step
-            if current_time >= sampling_time:
-                break
-
-            # Check if the point is outside the Voronoi region
-            if not voronoi_region.contains(Point(x, y)):
-                x_truncated = np.round(x / grid_resolution + boundary_tolerance) * grid_resolution
-                spiral_path[-1][0] = x_truncated
-                x += grid_resolution  # Move back one step
-                break
-
-        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
-                                weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
-        sensor_values.append(sensor_measurements)
-
-        if current_time >= sampling_time:
-            break
-
-        # Move down for the stride length
-        for _ in range(stride):
-            y -= grid_resolution
-            spiral_path.append([x, y])
-            current_time += time_per_step
-            if current_time >= sampling_time:
-                break
-
-            # Check if the point is outside the Voronoi region
-            if not voronoi_region.contains(Point(x, y)):
-                y_truncated = np.round(y / grid_resolution + boundary_tolerance) * grid_resolution
-                spiral_path[-1][1] = y_truncated
-                y += grid_resolution  # Move back one step
-                break
-
-        sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
-                                weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
-        sensor_values.append(sensor_measurements)
-
-        # Increment the stride length based on the second step before the current one
-        stride += 1
-
-    return np.array(spiral_path), np.array(sensor_values)
-
-
 def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, centers, 
     grid_resolution, grid_points, weed_density,
     sampling_time, time_per_step):
@@ -266,7 +116,6 @@ def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, cent
     spiral_paths = []
     sensor_values = []
     for region, center in zip(finite_regions, centers):
-        # spiral_path, sensor_values_from_spiral_path = generate_rectangular_spiral_path(
         spiral_path, sensor_values_from_spiral_path = generate_trajectory(
             center, [all_vertices[i] for i in region], 
             grid_resolution, grid_points, weed_density,
@@ -320,6 +169,9 @@ def generate_trajectory(center, vertices, grid_resolution, grid_points, weed_den
 
     while current_time < sampling_time:
         spiral_path.append([x, y])
+        if gnc_drone:
+            navigate_to_destination(gnc_drone, x, y)
+
         sensor_measurements = sample_weed_density(sense, spiral_path[-1], grid_points, 
                                                   weed_density, sensor_noise_std_dev=0.1, noise_model='gaussian')
         sensor_values.append(sensor_measurements)
@@ -410,8 +262,8 @@ def navigate_to_destination_LLA(gnc_drone, x, y, z=3):
 
     rate = rospy.Rate(3)
     rate.sleep()
-    while not gnc_drone.check_waypoint_reached():
-        pass
+    # while not gnc_drone.check_waypoint_reached():
+    #     pass
 
 def navigate_to_destination(gnc_drone, x, y, z=3):
     """

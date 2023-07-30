@@ -47,6 +47,6 @@ class CallbackHandler:
         self.drone.other_centers[drone_id] = np.array([msg.x, msg.y])
 
     def mavros_set_home_callback(self, data, drone_number):
-        model_states_callback(data, drone_number+1)
+        self.drone.drone.transformation_matrix = model_states_callback(data, drone_number+1)
 
       
