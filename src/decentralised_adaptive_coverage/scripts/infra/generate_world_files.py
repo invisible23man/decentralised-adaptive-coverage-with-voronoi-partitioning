@@ -1118,7 +1118,7 @@ if __name__ == '__main__':
     AREA_SIZE = args.drone_placement_area
 
 
-    WORLD_FILE_DIR = r'/home/invisibleman/catkin_ws/src/iq_sim/worlds'
+    WORLD_FILE_DIR = r'/home/invisible23man/catkin_ws/src/iq_sim/worlds'
     WORLD_FILE_NAME = 'multi_drone_world.world'
 
     # Call the function

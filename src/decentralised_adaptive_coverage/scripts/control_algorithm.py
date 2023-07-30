@@ -1,4 +1,4 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/python
+#! /usr/bin/python
 import rospy
 from models import Robots
 import configparser
@@ -14,7 +14,7 @@ def main():
     # Load configuration
     config = configparser.ConfigParser()
     config.read(
-        '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
+        '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini')
     n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
 
     # Initlialize the Drone

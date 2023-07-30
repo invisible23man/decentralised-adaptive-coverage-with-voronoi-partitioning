@@ -1,4 +1,4 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/python
+#! /usr/bin/python
 
 import rospy
 from gazebo_msgs.msg import ModelStates
@@ -74,7 +74,7 @@ def model_states_callback(data, drone_number):
     transformation_matrix = compute_transformation_matrix(drone_pose, mavros_home)
 
     # Broadcast the transformation matrix
-    broadcast_transformation_matrix(transformation_matrix, "world", f"drone{drone_number}")
+    # broadcast_transformation_matrix(transformation_mastrix, "world", f"drone{drone_number}")
 
 def compute_transformation_matrix(gazebo_pose, mavros_home):
     """

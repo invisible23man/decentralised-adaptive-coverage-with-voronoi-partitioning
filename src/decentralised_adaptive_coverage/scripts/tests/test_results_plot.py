@@ -1,5 +1,6 @@
+#! /usr/bin/python
 import sys
-sys.path.append(r'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts')
+sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts')
 
 from utils import plots
 import configparser
@@ -11,7 +12,7 @@ from utils import msg_handler
 # Load configuration
 config = configparser.ConfigParser()
 config.read(
-    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
+    '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini')
 
 # Global variables to store the latest data from the topics
 boundary_points = None

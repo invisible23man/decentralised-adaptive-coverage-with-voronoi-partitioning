@@ -1,4 +1,4 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/python
+#! /usr/bin/python
 import rospy
 from gazebo_msgs.msg import ModelStates
 import json

@@ -1,7 +1,7 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/python
+#! /usr/bin/python
 
 import sys
-sys.path.append('/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/python3/dist-packages')
+sys.path.append('/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/devel/lib/python3/dist-packages')
 import rospy
 from std_msgs.msg import String
 from initialization import initial_setup
@@ -14,7 +14,7 @@ def init_voronoi_node():
 
     # Load configuration
     config = configparser.ConfigParser()
-    config.read('/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
+    config.read('/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini')
 
     # Perform initial setup
     vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \

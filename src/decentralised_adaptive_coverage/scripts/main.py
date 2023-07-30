@@ -1,4 +1,4 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/ python
+#! /usr/bin/python
 
 import configparser
 from multiprocessing import Pool, Value
@@ -13,7 +13,7 @@ from tqdm import tqdm
 # Load configuration
 config = configparser.ConfigParser()
 config.read(
-    '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini')
+    '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini')
 
 # Get values from the config file
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')

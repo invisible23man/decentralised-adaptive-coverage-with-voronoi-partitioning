@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/')
+sys.path.append('/home/invisible23man/Robotics/Simulations/ardupilot/Tools/autotest/pysim/')
 
 import configparser
 import os
@@ -12,7 +12,7 @@ def generate_node_launch_files(num_drones, LAUNCHFILE):
     """
     Generate launch files for control_algorithm_node for each drone.
 
-    Args:
+    Args:_BUILD
         num_drones (int): Number of drones.
         LAUNCHFILE (str): Path to the output launch file.
 
@@ -267,10 +267,10 @@ def generate_ardupilot_launch_script(num_drones, file_path):
     """
     
     script = "#!/bin/bash\n"
-    script += "cd ~/ardupilot/ArduCopter/ && \\\ngnome-terminal \\\n"
+    script += "cd ~/Robotics/Simulations/ardupilot/ArduCopter/ && \ \ngnome-terminal \\\n"
 
     for i in range(num_drones):
-        script += f" --tab -e \"sim_vehicle.py -v ArduCopter -f gazebo-drone{i+1} -I{i}\" \\\n"
+        script += f" --tab -e \"python sim_vehicle.py -v ArduCopter -f gazebo-drone{i+1} -I{i}\" \\\n"
 
     # Remove the trailing backslash and newline character
     script = script.rstrip("\\\n")
@@ -307,7 +307,7 @@ def generate_gazebo_launch_file(world_name, output_file):
 
 if __name__ == '__main__':
 
-    CONFIGFILE = '/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts/config.ini'
+    CONFIGFILE = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini'
 
     # Read the number of drones from the config file
     config = configparser.ConfigParser()

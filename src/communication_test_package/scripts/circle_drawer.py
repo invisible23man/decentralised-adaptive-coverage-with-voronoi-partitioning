@@ -1,4 +1,4 @@
-#! /home/invisibleman/anaconda3/envs/drones/bin/ python
+#! /home/invisible23man/anaconda3/envs/drones/bin/ python
 import rospy
 from std_msgs.msg import Float64
 import turtle
