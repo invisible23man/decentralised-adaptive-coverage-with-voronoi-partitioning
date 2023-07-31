@@ -5,10 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "ROS: Launch",
+            "name": "ROS: Launch Control Node",
             "type": "ros",
             "request": "launch",
-            "target": "/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/launch/control.launch"
+            "target": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/launch/control.launch"
+        },
+        {
+            "name": "ROS: Launch Voronoi Initial Node",
+            "type": "ros",
+            "request": "launch",
+            "target": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/launch/voronoi.launch"
         },
         {
             "name": "ROS: Attach",

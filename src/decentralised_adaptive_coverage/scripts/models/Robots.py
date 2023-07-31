@@ -176,6 +176,27 @@ class Drone(Robot):
             # drone.wait4start()
             self.drone.set_mode("GUIDED")
 
+            # Subscriber for coordinate transformations
+            self.model_states_sub = rospy.Subscriber(
+                '/gazebo/model_states', 
+                ModelStates, 
+                self.callback_handler.mavros_set_home_callback, 
+                self.drone_id
+            )
+
+            # Wait for the transformation matrix to become available
+            while self.drone.transformation_matrix is None:
+                rospy.loginfo(f"Waiting for transformation matrix for {self.drone_id}")
+                rospy.sleep(0.1)
+
+            # Unsubscribe after receiving the data once
+            self.model_states_sub.unregister()
+            
+            # Create a tf2_ros.TransformBroadcaster
+            # self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+            rospy.loginfo(f"Transform Broadcasted for {self.drone_id}")
+
+
             # Create local reference frame.
             self.drone.initialize_local_frame()
             # Request takeoff with an altitude of 3m.
@@ -263,26 +284,6 @@ class Drone(Robot):
                     rosMsgPoint, 
                     self.callback_handler.center_callback, 
                     callback_args=i)
-
-        if self.enable_physics_simulation:
-            self.model_states_sub = rospy.Subscriber(
-                '/gazebo/model_states', 
-                ModelStates, 
-                self.callback_handler.mavros_set_home_callback, 
-                self.drone_id
-            )
-
-            # Wait for the transformation matrix to become available
-            while self.drone.transformation_matrix is None:
-                rospy.loginfo("Waiting for transformation matrix for {self.drone_id}")
-                rospy.sleep(0.1)
-
-            # Unsubscribe after receiving the data once
-            self.model_states_sub.unregister()
-            
-            # Create a tf2_ros.TransformBroadcaster
-            # self.tf_broadcaster = tf2_ros.TransformBroadcaster()
-            rospy.loginfo(f"Transform Broadcasted for {self.drone_id}")
 
     def unsubscribe_initial_topics(self):
         self.all_vertices_sub.unregister()
