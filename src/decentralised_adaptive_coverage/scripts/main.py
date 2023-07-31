@@ -2,7 +2,7 @@
 
 import configparser
 from initialization import initial_setup
-from move import generate_trajectory
+from move import voronoi_coverage_with_rectangular_spirals
 from utils import plots
 from tqdm import tqdm
 
@@ -30,7 +30,7 @@ vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
 plots.visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
 
 # Plot Spiral Coverage for initial state
-spiral_paths, sensor_values = generate_trajectory(all_vertices, finite_regions, voronoi_centers, 
+spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, voronoi_centers, 
     grid_resolution, grid_points, weed_density,
     sampling_time, time_per_step)
 

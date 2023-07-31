@@ -14,7 +14,7 @@ from utils import voronoi
 matplotlib.use('TkAgg')
 ani = None
 
-def visualize_swarm(positions, r):
+def visualize_swarm(positions, r, origin = (0,0)):
     """
     Visualize the positions of drones in 2D plot.
 
@@ -27,7 +27,7 @@ def visualize_swarm(positions, r):
     """
     fig, ax = plt.subplots()
     sc = ax.scatter(positions[:, 0], positions[:, 1], label='Drones')
-    ax.add_patch(Circle((0, 0), r, fill=False, color='black',
+    ax.add_patch(Circle(origin, r, fill=False, color='black',
                  linestyle='--', label='Coverage Area'))
     ax.legend()
     ax.set_title('Initial Positions of Drones')
@@ -44,7 +44,7 @@ def visualize_swarm(positions, r):
     plt.show()
 
 
-def plot_voronoi(all_vertices, finite_vertices, points):
+def plot_voronoi(all_vertices, finite_vertices, points, r = 50, origin = (0,0)):
     """
     Visualize Voronoi diagram of drone positions in 2D plot.
 
@@ -58,7 +58,7 @@ def plot_voronoi(all_vertices, finite_vertices, points):
     """
     fig, ax = plt.subplots()
 
-    ax.add_patch(Circle((0, 0), 50, fill=False, color='black',
+    ax.add_patch(Circle(origin, r, fill=False, color='black',
                 linestyle='--', label='Coverage Area'))
 
     for region in finite_vertices:
@@ -84,8 +84,8 @@ def plot_voronoi(all_vertices, finite_vertices, points):
     # ax.set_xlim(-limit, limit)
     # ax.set_ylim(-limit, limit)
 
-    ax.set_xlim(-50, 50)
-    ax.set_ylim(-50, 50)
+    ax.set_xlim(-r, r)
+    ax.set_ylim(-r, r)
 
 
     cursor = mplcursors.cursor(sc, hover=True)

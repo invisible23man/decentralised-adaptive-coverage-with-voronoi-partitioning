@@ -32,9 +32,13 @@ def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
                       1 not in region and len(region) > 0]
     finite_vertices = [vor.vertices[region] for region in finite_regions]
 
+    """
+    Each element of the vor.point_region array represents the index of the 
+    Voronoi region associated with the corresponding input point.
+    """
+
     # Create list of original points corresponding to finite regions
-    voronoi_centers = np.array([points_with_boundary[i] for i in vor.point_region[:len(
-        points)] if vor.regions[i] in finite_regions])
+    voronoi_centers = np.array([vor.points[np.where(vor.point_region == vor.regions.index(region))[0][0]] for region in finite_regions])
     all_vertices = vor.vertices
 
     if plot:

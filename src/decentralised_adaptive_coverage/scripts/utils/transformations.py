@@ -22,10 +22,6 @@ GAZEBO_ORIGIN_Z = 0.0
 # Dictionary to store Gazebo pose and orientation for each drone
 gazebo_drone_poses = {}
 
-# Create a tf2_ros.Buffer and tf2_ros.TransformListener
-tf_buffer = tf2_ros.Buffer()
-# tf_listener = tf2_ros.TransformListener(tf_buffer)
-
 def model_states_callback(data, drone_number):
     """
     Callback function to process the ModelStates message and extract the pose and orientation of the specified drone.

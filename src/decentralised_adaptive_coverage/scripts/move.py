@@ -1,10 +1,8 @@
 from typing import Optional
 from shapely.geometry import Point, Polygon
-from shapely.ops import unary_union
 import numpy as np
 from iq_gnc.py_gnc_functions_swarm import rospy, gnc_api, Odometry
 from sensor import sample_weed_density, sense
-from utils.reference_frames import ecef_to_enu, lla_to_ecef
 from utils.transformations import apply_transformation_matrix
 
 def boustrophedon_points(center, vertices, grid_resolution, max_time, start_time=0):
@@ -94,37 +92,6 @@ def generate_spiral_path(center, vertices, resolution, sampling_time, time_per_s
 
     return np.array(points)
 
-def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, centers, 
-    grid_resolution, grid_points, weed_density,
-    sampling_time, time_per_step):
-    """
-    Compute rectangular spiral paths and weed concentartions for each 
-    Voronoi partition and return them.
-
-    Parameters:
-    vor (scipy.spatial.Voronoi): Voronoi object.
-    finite_regions (list): A list of finite regions in the Voronoi diagram.
-    centers (np.array): The centers of the Voronoi partitions.
-    grid_resolution (float): Resolution of the grid.
-    sampling_time (float): Total time for sampling.
-    time_per_step (float): Time taken for each step.
-
-    Returns:
-    list: List of rectangular spiral paths for each Voronoi partition.
-    list: List of sensor values (weed concentrations) for each spiral path.
-    """
-    spiral_paths = []
-    sensor_values = []
-    for region, center in zip(finite_regions, centers):
-        spiral_path, sensor_values_from_spiral_path = generate_trajectory(
-            center, [all_vertices[i] for i in region], 
-            grid_resolution, grid_points, weed_density,
-            sampling_time, time_per_step, boundary_tolerance=0.2)
-        spiral_paths.append(spiral_path)
-        sensor_values.append(sensor_values_from_spiral_path)
-
-    return spiral_paths, sensor_values
-
 def move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolerance):
     # Move the drone in the specified direction (dx, dy) from the current point (x, y) within the Voronoi region.
     x_new, y_new = x + dx * grid_resolution, y + dy * grid_resolution
@@ -208,24 +175,54 @@ def generate_trajectory(center, vertices, grid_resolution, grid_points, weed_den
 
     return np.array(spiral_path), np.array(sensor_values)
 
-def navigate_to_destination_LLA(gnc_drone, x, y, z=3):
+def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, centers, 
+    grid_resolution, grid_points, weed_density,
+    sampling_time, time_per_step):
+    """
+    Compute rectangular spiral paths and weed concentartions for each 
+    Voronoi partition and return them.
+
+    Parameters:
+    vor (scipy.spatial.Voronoi): Voronoi object.
+    finite_regions (list): A list of finite regions in the Voronoi diagram.
+    centers (np.array): The centers of the Voronoi partitions.
+    grid_resolution (float): Resolution of the grid.
+    sampling_time (float): Total time for sampling.
+    time_per_step (float): Time taken for each step.
+
+    Returns:
+    list: List of rectangular spiral paths for each Voronoi partition.
+    list: List of sensor values (weed concentrations) for each spiral path.
+    """
+    spiral_paths = []
+    sensor_values = []
+    for region, center in zip(finite_regions, centers):
+        spiral_path, sensor_values_from_spiral_path = generate_trajectory(
+            center, [all_vertices[i] for i in region], 
+            grid_resolution, grid_points, weed_density,
+            sampling_time, time_per_step, boundary_tolerance=0.2)
+        spiral_paths.append(spiral_path)
+        sensor_values.append(sensor_values_from_spiral_path)
+
+    return spiral_paths, sensor_values
+
+
+def navigate_to_destination(gnc_drone, x, y, z=3):
     """
     Navigate the drone to a specific destination in the Gazebo world.
 
     Parameters:
         gnc_drone (YourDroneController): An instance of your drone controller class.
-        x (float): Latitude of the destination point in degrees.
-        y (float): Longitude of the destination point in degrees.
+        x (float): Gazebo x-coordinate (East) of the destination point in meters.
+        y (float): Gazebo y-coordinate (North) of the destination point in meters.
+        z (float): Gazebo z-coordinate (Up) of the destination point in meters.
 
     Returns:
         None
 
     Description:
-        This function calculates the local destination coordinates (ENU frame) from
-        the provided latitude and longitude using LLA-to-ECEF-to-ENU conversions. It then
-        creates an Odometry message with the destination coordinates and sets it as the
-        drone's target destination using the provided drone controller (gnc_drone). The
-        drone will navigate to the specified destination point in the Gazebo world.
+        This function sets the drone's target destination using the provided drone controller (gnc_drone).
+        The drone will navigate to the specified destination point in the Gazebo world.
 
     Note:
         - Make sure you have already initialized the ROS node and created the drone object (gnc_drone)
@@ -233,10 +230,8 @@ def navigate_to_destination_LLA(gnc_drone, x, y, z=3):
         - The function assumes that the drone's orientation (quaternion) is set to (0, 0, 0, 1)
           for simplicity (no rotation).
     """
-    # Get the destination pose in the local frame.
-    # ecef_x, ecef_y, ecef_z = lla_to_ecef(x, y, z)
-    # enu_x, enu_y, enu_z = ecef_to_enu(ecef_x, ecef_y, ecef_z)
-    (enu_x, enu_y, enu_z) = (x,y,z)
+    # Apply the transformation matrix to convert Gazebo coordinates to MAVROS coordinates
+    enu_x, enu_y, enu_z = apply_transformation_matrix(x, y, z, gnc_drone.transformation_matrix)
 
     # Create the Odometry message with ENU coordinates
     destination = Odometry()
@@ -264,56 +259,3 @@ def navigate_to_destination_LLA(gnc_drone, x, y, z=3):
     rate.sleep()
     # while not gnc_drone.check_waypoint_reached():
     #     pass
-
-def navigate_to_destination(gnc_drone, x, y, z=3):
-    """
-    Navigate the drone to a specific destination in the Gazebo world.
-
-    Parameters:
-        gnc_drone (YourDroneController): An instance of your drone controller class.
-        x (float): Gazebo x-coordinate (East) of the destination point in meters.
-        y (float): Gazebo y-coordinate (North) of the destination point in meters.
-        z (float): Gazebo z-coordinate (Up) of the destination point in meters.
-
-    Returns:
-        None
-
-    Description:
-        This function sets the drone's target destination using the provided drone controller (gnc_drone).
-        The drone will navigate to the specified destination point in the Gazebo world.
-
-    Note:
-        - Make sure you have already initialized the ROS node and created the drone object (gnc_drone)
-          before calling this function.
-        - The function assumes that the drone's orientation (quaternion) is set to (0, 0, 0, 1)
-          for simplicity (no rotation).
-    """
-    # Apply the transformation matrix to convert Gazebo coordinates to MAVROS coordinates
-    enu_x, enu_y, enu_z = apply_transformation_matrix(x, y, z, gnc_drone.drone_id)
-
-    # Create the Odometry message with ENU coordinates
-    destination = Odometry()
-
-    # Set the position (ENU coordinates)
-    destination.pose.pose.position.x = x
-    destination.pose.pose.position.y = y
-    destination.pose.pose.position.z = z
-
-    # Set the orientation (quaternion - assuming you have orientation information)
-    destination.pose.pose.orientation.x = 0.0
-    destination.pose.pose.orientation.y = 0.0
-    destination.pose.pose.orientation.z = 0.0
-    destination.pose.pose.orientation.w = 1.0  # Assuming no rotation for simplicity
-
-    destination_pose_local = gnc_drone.enu_2_local(destination, gnc_drone.local_offset_g)
-    gnc_drone.set_destination(
-        destination_pose_local.x,
-        destination_pose_local.y,
-        destination_pose_local.z,
-        psi=0,
-    )
-
-    rate = rospy.Rate(3)
-    rate.sleep()
-    while not gnc_drone.check_waypoint_reached():
-        pass
