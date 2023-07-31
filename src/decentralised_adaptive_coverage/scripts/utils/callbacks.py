@@ -46,6 +46,17 @@ class CallbackHandler:
         # Update the center of the specified drone
         self.drone.other_centers[drone_id] = np.array([msg.x, msg.y])
 
+    def state_callback(self, data, drone_id):
+        # Convert the state from a string to a numpy array
+        # state = np.fromstring(msg.data, sep=',')
+        self.drone.other_states[drone_id] = msg_handler.decode_data(data)
+
+    def covariance_callback(self, data, drone_id):
+        # Convert the covariance from a string to a numpy array
+        # covariance = np.fromstring(msg.data, sep=',').reshape((2, 2))
+        self.drone.other_covariances[drone_id] = msg_handler.decode_data(data)
+
+
     def mavros_set_home_callback(self, data, drone_number):
         self.drone.drone.transformation_matrix = model_states_callback(data, drone_number+1)
 

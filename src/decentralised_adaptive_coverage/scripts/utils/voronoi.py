@@ -2,7 +2,7 @@ from scipy.spatial import Voronoi, Delaunay
 import numpy as np
 from utils import plots
 from scipy.spatial import KDTree
-
+import networkx as nx
 
 def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
     """
@@ -125,5 +125,27 @@ def compute_graph_laplacian(points):
 
     # Compute diagonal elements
     L = L + np.diag(-np.sum(L, axis=1))
+
+    return L
+
+def compute_laplacian(points):
+    # Convert points to numpy array if it's not
+    if not isinstance(points, np.ndarray):
+        points = np.array(points)
+
+    # Compute Delaunay triangulation
+    tri = Delaunay(points)
+
+    # Create a graph from the Delaunay triangulation
+    G = nx.Graph()
+    for simplex in tri.simplices:
+        for i in range(3):
+            for j in range(i+1, 3):
+                # Add an edge between the i-th and j-th points of the simplex
+                # The weight of the edge is the Euclidean distance between the points
+                G.add_edge(simplex[i], simplex[j], weight=np.linalg.norm(points[simplex[i]] - points[simplex[j]]))
+
+    # Compute Laplacian matrix
+    L = nx.laplacian_matrix(G).toarray()
 
     return L

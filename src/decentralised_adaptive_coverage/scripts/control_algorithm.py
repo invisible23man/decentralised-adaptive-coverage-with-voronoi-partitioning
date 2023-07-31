@@ -43,8 +43,11 @@ def main():
         drone.calculate_new_voronoi_center()
 
         # Wait until all drones have updated their centers
+        counter = 0 
         while len(drone.other_centers) != drone.config.getint('INITIAL_SETUP','n_drones') - 1:
-            rospy.loginfo(f"Waiting for other drones to update their centers:drone{drone.drone_id}, o_centers:{len(drone.other_centers)},iter:{i}")
+            if counter % 15 == 0:
+                rospy.loginfo(f"Waiting for other drones to update their centers:drone{drone.drone_id}, o_centers:{len(drone.other_centers)},iter:{i}")
+            counter +=1
             time.sleep(1)  # Sleep for a short time to avoid busy waiting
 
         rospy.loginfo(f"Calculating Voronoi Partitions:drone{drone.drone_id}, iter:{i}")

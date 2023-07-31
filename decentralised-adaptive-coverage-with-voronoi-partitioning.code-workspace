@@ -17,7 +17,11 @@
 			"/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/devel/lib/python3/dist-packages",
 			"/opt/ros/noetic/lib/python3/dist-packages"
 		],
-		"terminal.integrated.cwd": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning"
+		"terminal.integrated.cwd": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning",
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.autopep8"
+		},
+		"python.formatting.provider": "none"
 	},
 	"launch": {
 		"version": "0.2.0",
