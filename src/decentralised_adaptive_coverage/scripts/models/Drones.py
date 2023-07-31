@@ -257,6 +257,18 @@ class Drone(Robot):
             self.set_initial_state(self.voronoi_center, self.initial_covariance)
             self.move_and_sense_started = True
 
+    def publish_state_and_covariance(self):
+        if self.apply_consensus:
+            # Publish the state for current drone
+            state_str = msg_handler.encode_data(self.kalman_filter.x.tolist())
+            covariance_str = msg_handler.encode_data(self.kalman_filter.P.tolist())
+
+            # Publish the state and covariance
+            self.state_pub.publish(state_str)
+            self.covariance_pub.publish(covariance_str)
+
+            rospy.loginfo(f"State and Covariance Published Drone:{self.drone_id}")
+
     def calculate_new_voronoi_center(self):
         """
         Calculate the new Voronoi center based on the updated sensor function.
@@ -274,16 +286,6 @@ class Drone(Robot):
         yp = yp[in_voronoi]
 
         if self.apply_consensus:
-            # Publish the state for current drone
-            state_str = msg_handler.encode_data(self.kalman_filter.x.tolist())
-            covariance_str = msg_handler.encode_data(self.kalman_filter.P.tolist())
-
-            # Publish the state and covariance
-            self.state_pub.publish(state_str)
-            self.covariance_pub.publish(covariance_str)
-
-            rospy.loginfo(f"State and Covariance Published Drone:{self.drone_id}")
-
             self.apply_covariance_intersection()
 
         # Integrals over Voronoi region
@@ -333,22 +335,6 @@ class Drone(Robot):
         none
         """
         
-        # Receive the states from other drones
-        while len(self.other_states) < self.config.getint('INITIAL_SETUP','n_drones') - 1:
-            rospy.sleep(0.1)  # Sleep for a short duration before checking again
-            rospy.loginfo(f"Waiting for other drones to send x,P:drone{self.drone_id}:: \
-                            x,P:{len(self.other_states)},{len(self.other_covariances)}")
-
-            # Apply Sensor Fusiom
-        self.fuse_estimates()
-
-    def fuse_estimates(self):
-        """
-        Fuse estimates from all drones.
-
-        Returns:
-        none
-        """
         # Compute Delaunay triangulation and Laplacian matrix
         # laplacian = voronoi.compute_graph_laplacian(self.voronoi_centers)
         laplacian = voronoi.compute_laplacian(self.voronoi_centers)

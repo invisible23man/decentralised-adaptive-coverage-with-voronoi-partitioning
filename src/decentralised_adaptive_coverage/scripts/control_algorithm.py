@@ -1,11 +1,12 @@
 #! /usr/bin/python
+
 import rospy
-from models import Robots
 import configparser
 import time
-from tqdm import tqdm
 import pickle
 import os
+from tqdm import tqdm
+from models import Drones
 
 def main():
     # Initializing ROS node.
@@ -16,9 +17,10 @@ def main():
     config.read(
         '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/config.ini')
     n_iter = config.getint('ITERATIVE_PROCESS', 'n_iterations')
+    n_drones = config.getint('INITIAL_SETUP','n_drones') 
 
     # Initlialize the Drone
-    drone = Robots.Drone(config)
+    drone = Drones.Drone(config)
 
     # Wait until the drone is ready
     time.sleep(3)
@@ -38,6 +40,18 @@ def main():
         
         rospy.loginfo(f"Started Kalman Update:drone{drone.drone_id}, iter:{i}")
         drone.update()
+
+        # Wait until all drones have published their state and covariance
+        if config.getboolean('FILTER_SETUP','apply_consensus'):
+            drone.publish_state_and_covariance()
+            counter = 0 
+            while len(drone.other_states) < n_drones- 1 or len(drone.other_covariances) < n_drones- 1:
+                rospy.sleep(0.1)  # Sleep for a short duration before checking again
+                if counter % 15 == 0:
+                    rospy.loginfo(f"Waiting for other drones to send x,P:drone{drone.drone_id}:: \
+                                    x,P:{len(drone.other_states)},{len(drone.other_covariances)}")
+                counter +=1
+                time.sleep(1)  # Sleep for a short time to avoid busy waiting
 
         rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.calculate_new_voronoi_center()
