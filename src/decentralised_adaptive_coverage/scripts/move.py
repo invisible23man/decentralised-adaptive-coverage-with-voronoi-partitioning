@@ -5,38 +5,6 @@ from iq_gnc.py_gnc_functions_swarm import rospy, gnc_api, Odometry
 from sensor import sample_weed_density, sense
 from utils.transformations import apply_transformation_matrix
 
-def generate_spiral_trajectory(center, vertices, resolution, sampling_time, time_per_step, spiral_resolution=0.01):
-    """
-    Generate a spiral path from the center of a Voronoi partition within a given sampling time.
-
-    Parameters:
-    center (tuple): The (x, y) coordinates of the center of the partition.
-    vertices (np.array): The vertices of the Voronoi partition.
-    resolution (float): The distance between successive points on the spiral.
-    sampling_time (float): Total available time for sampling.
-    time_per_step (float): Time taken for each step.
-
-    Returns:
-    np.array: Points on the spiral path.
-    """
-    # Compute maximum radius as half the length of the longest side of the bounding box
-    x_max, y_max = np.max(vertices, axis=0)
-    x_min, y_min = np.min(vertices, axis=0)
-    max_radius = max(x_max - x_min, y_max - y_min) / 20
-
-    theta = 0  # Angle from the x-axis
-    points = []
-    max_steps = int(sampling_time / time_per_step)  # Compute maximum steps from sampling time
-
-    for _ in range(max_steps):
-        x = center[0] + max_radius * np.cos(theta)
-        y = center[1] + max_radius * np.sin(theta)
-        points.append([x, y])
-        theta += spiral_resolution / max_radius  # Increase the angle
-        max_radius -= spiral_resolution / (2 * np.pi)  # Decrease the radius
-
-    return np.array(points)
-
 def move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolerance):
     # Move the drone in the specified direction (dx, dy) from the current point (x, y) within the Voronoi region.
     x_new, y_new = x + dx * grid_resolution, y + dy * grid_resolution
@@ -51,7 +19,7 @@ def move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolera
             return x, y_truncated
 
 
-def generate_trajectory(center, vertices, grid_resolution, grid_points, weed_density,
+def generate_rectangular_spiral_trajectory(center, vertices, grid_resolution, grid_points, weed_density,
     sampling_time, time_per_step, boundary_tolerance=0.02, gnc_drone: Optional[gnc_api]= None):
     """
     Generate a rectangular spiral path starting from the center within the Voronoi region and perform the sensing process.
@@ -135,13 +103,18 @@ def generate_lawnmower_trajectory(center, vertices, grid_resolution, grid_points
         np.array: Points on the lawnmower path within the Voronoi region.
     """
     x_min, y_min = np.min(vertices, axis=0)
-    x_max, y_max = np.max(vertices, axis=0)
+    x_max, y_max =np.max(vertices, axis=0)
+
+    # x_range = np.arange(int(x_min), int(x_max), grid_resolution)
+    # y_range = np.arange(int(y_min), int(y_max), grid_resolution)
 
     x_range = np.arange(x_min, x_max, grid_resolution)
     y_range = np.arange(y_min, y_max, grid_resolution)
 
     lawnmower_path = []
     sensor_values = []
+
+    current_time = 0
 
     for i, x in enumerate(x_range):
         if i % 2 == 0:  # Move up
@@ -155,6 +128,10 @@ def generate_lawnmower_trajectory(center, vertices, grid_resolution, grid_points
 
                     if gnc_drone:
                         navigate_to_destination(gnc_drone, x, y)
+                    current_time += time_per_step
+                    if current_time >= sampling_time:
+                                        break
+
         else:  # Move down
             for y in reversed(y_range):
                 point = np.array([x, y])
@@ -165,40 +142,13 @@ def generate_lawnmower_trajectory(center, vertices, grid_resolution, grid_points
                     sensor_values.append(sensor_measurements)
                     if gnc_drone:
                         navigate_to_destination(gnc_drone, x, y)
+                    current_time += time_per_step
+                    if current_time >= sampling_time:
+                                        break
+        if current_time >= sampling_time:
+                    break
 
     return np.array(lawnmower_path), np.array(sensor_values)
-
-
-def voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, centers, 
-    grid_resolution, grid_points, weed_density,
-    sampling_time, time_per_step):
-    """
-    Compute rectangular spiral paths and weed concentartions for each 
-    Voronoi partition and return them.
-
-    Parameters:
-    vor (scipy.spatial.Voronoi): Voronoi object.
-    finite_regions (list): A list of finite regions in the Voronoi diagram.
-    centers (np.array): The centers of the Voronoi partitions.
-    grid_resolution (float): Resolution of the grid.
-    sampling_time (float): Total time for sampling.
-    time_per_step (float): Time taken for each step.
-
-    Returns:
-    list: List of rectangular spiral paths for each Voronoi partition.
-    list: List of sensor values (weed concentrations) for each spiral path.
-    """
-    spiral_paths = []
-    sensor_values = []
-    for region, center in zip(finite_regions, centers):
-        spiral_path, sensor_values_from_spiral_path = generate_trajectory(
-            center, [all_vertices[i] for i in region], 
-            grid_resolution, grid_points, weed_density,
-            sampling_time, time_per_step, boundary_tolerance=0.2)
-        spiral_paths.append(spiral_path)
-        sensor_values.append(sensor_values_from_spiral_path)
-
-    return spiral_paths, sensor_values
 
 def voronoi_coverage(all_vertices, finite_regions, centers, 
     grid_resolution, grid_points, weed_density,
@@ -223,7 +173,7 @@ def voronoi_coverage(all_vertices, finite_regions, centers,
     sensor_values = []
     for region, center in zip(finite_regions, centers):
         if method == 'spiral':
-            path, sensor_values_from_path = generate_trajectory(
+            path, sensor_values_from_path = generate_rectangular_spiral_trajectory(
                 center, [all_vertices[i] for i in region], 
                 grid_resolution, grid_points, weed_density,
                 sampling_time, time_per_step, boundary_tolerance=0.2)

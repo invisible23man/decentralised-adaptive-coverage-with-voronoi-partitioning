@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import griddata
 from perlin_noise import PerlinNoise
 
-def sense(point, grid_points, weed_density):
+def sense(point, grid_points, weed_density, method='linear'):
     """
     Get the weed concentration at a specific coordinate.
 
@@ -15,7 +15,17 @@ def sense(point, grid_points, weed_density):
         float: Weed concentration at the given coordinate.
 
     """
-    return griddata(grid_points, weed_density, point, method='linear')
+    return griddata(grid_points, weed_density, point, method='nearest')
+
+def sense2(point, grid_points, weed_density, grid_resolution=1):
+    """Sample the weed density at each point in the path."""
+    distances = np.linalg.norm(grid_points - point, axis=1)
+    closest_point_index = np.argmin(distances)
+    if distances[closest_point_index] <= grid_resolution:
+        sampled_value = weed_density[closest_point_index]
+    else:
+        sampled_value = 0  # No weed detected if the point is not within the grid resolution
+    return sampled_value
 
 def gaussian_sensor_model(point, mean, covariance):
     """
@@ -34,33 +44,6 @@ def gaussian_sensor_model(point, mean, covariance):
     exp_argument = -1/2 * (point - mean).T @ np.linalg.inv(covariance) @ (point - mean)
     
     return normalization_factor * np.exp(exp_argument)
-
-def apply_gaussian_sensor_model(points, mean, covariance,radius=1.5):
-    """
-    Apply the gaussian sensor model to a set of points.
-
-    Parameters:
-    points (np.array): An array of points where each point is an array [x, y].
-    mean (np.array): Mean of the Gaussian distribution.
-    covariance (np.array): Covariance matrix of the Gaussian distribution.
-    radius (float): Radius of the circular area (centered at [0, 0])
-
-    Returns:
-    np.array: An array of sensor values.
-    """
-
-    sensor_values = []
-
-    for point in points:
-        # Check if the point is inside the circular area
-        if np.linalg.norm(point - mean) <= radius:
-            sensor_value = gaussian_sensor_model(point, mean, covariance)
-        else:
-            sensor_value = 0  # or any other value that indicates no sensor data
-
-        sensor_values.append(sensor_value)
-
-    return np.array(sensor_values)
 
 def generate_perlin_noise(shape, scale=0.1):
     """
@@ -97,6 +80,7 @@ def sample_weed_density(sensor_func,  points, grid_points, weed_density, sensor_
     """
     # Calculate the true sensor values
     true_values = sensor_func(points, grid_points, weed_density)
+    # true_values = sample_weed_density_at_point(points, grid_points, weed_density)
 
     # Add noise to simulate real-world conditions
     if noise_model == 'gaussian':
@@ -107,5 +91,6 @@ def sample_weed_density(sensor_func,  points, grid_points, weed_density, sensor_
         raise ValueError("Invalid noise model. Supported models are 'gaussian' and 'perlin'.")
 
     # Return the noisy sensor measurements
-    return true_values + noise
+    # return true_values + noise
+    return true_values
 

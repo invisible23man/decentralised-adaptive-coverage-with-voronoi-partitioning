@@ -44,7 +44,8 @@ class Robot:
 
         dt = self.config.getfloat('FILTER_SETUP','sampling_time')
         self.dt = dt
-        A = np.array([[1, dt], [0, 1]])
+        # A = np.array([[1, dt], [0, 1]])
+        A = np.array([[1, 0], [0, 1]])
         B =  None
         H = np.array([[1, 0], [0, 1]])
         Q = np.array([[0.1, 0], [0, 0.1]])

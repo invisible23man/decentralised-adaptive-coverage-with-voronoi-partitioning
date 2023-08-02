@@ -10,7 +10,7 @@ from geometry_msgs.msg import Point as rosMsgPoint
 from gazebo_msgs.msg import ModelStates
 from shapely.geometry import Point, Polygon
 from utils import callbacks, voronoi, msg_handler
-from move import generate_trajectory
+from move import generate_rectangular_spiral_trajectory, generate_lawnmower_trajectory
 from sensor import gaussian_sensor_model
 from models.Robots import Robot
 
@@ -32,6 +32,7 @@ class Drone(Robot):
         self.boundary_tolerance = config.getfloat('VORONOI_SETUP', 'boundary_tolerance')
         self.enable_physics_simulation = self.config.getboolean('GAZEBO_SETUP','enable_physics_simulation')
         self.apply_consensus = self.config.getboolean('FILTER_SETUP','apply_consensus')
+        self.operation_mode = self.config.get('OPERATION_SETUP','operation_mode')
 
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
@@ -233,7 +234,8 @@ class Drone(Robot):
             self.voronoi_vertices = self.voronoi_vertices.replace('array(', '').replace(')', '')
             self.voronoi_vertices = np.array(ast.literal_eval(self.voronoi_vertices)[self.drone_id])
 
-        self.planned_path, self.sampled_sensor_values = generate_trajectory(
+        # self.planned_path, self.sampled_sensor_values = generate_rectangular_spiral_trajectory(
+        self.planned_path, self.sampled_sensor_values = generate_lawnmower_trajectory(
             self.voronoi_center, 
             [self.all_vertices[i] for i in self.voronoi_region], 
             self.grid_resolution, 
@@ -280,25 +282,64 @@ class Drone(Robot):
         Returns:
         numpy array: New Voronoi center coordinates.
         """
-        # Sample points
-        cnt = 10000
-        xp = min(self.voronoi_vertices[:, 0]) + np.random.rand(cnt) * (max(self.voronoi_vertices[:, 0]) - min(self.voronoi_vertices[:, 0]))
-        yp = min(self.voronoi_vertices[:, 1]) + np.random.rand(cnt) * (max(self.voronoi_vertices[:, 1]) - min(self.voronoi_vertices[:, 1]))
-        voronoi_region = Polygon(self.voronoi_vertices)
-        in_voronoi = [voronoi_region.contains(Point(x, y)) for x, y in zip(xp, yp)]
-        xp = xp[in_voronoi]
-        yp = yp[in_voronoi]
 
-        if self.apply_consensus:
-            self.apply_covariance_intersection()
+        if self.operation_mode == 'estimation_enabled':
+            # Sample points
+            cnt = 10000
+            xp = min(self.voronoi_vertices[:, 0]) + np.random.rand(cnt) * (max(self.voronoi_vertices[:, 0]) - min(self.voronoi_vertices[:, 0]))
+            yp = min(self.voronoi_vertices[:, 1]) + np.random.rand(cnt) * (max(self.voronoi_vertices[:, 1]) - min(self.voronoi_vertices[:, 1]))
+            voronoi_region = Polygon(self.voronoi_vertices)
+            in_voronoi = [voronoi_region.contains(Point(x, y)) for x, y in zip(xp, yp)]
+            xp = xp[in_voronoi]
+            yp = yp[in_voronoi]
 
-        # Integrals over Voronoi region
-        if self.config.get('FILTER_SETUP','filter_type')=='UKF':
-            phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.x, self.kalman_filter.P) for x,y in zip(xp,yp)])
+            if self.apply_consensus:
+                self.apply_covariance_intersection()
 
-        mv = np.sum(phi_est)
-        cx = np.sum(xp * phi_est) / mv
-        cy = np.sum(yp * phi_est) / mv
+            # Integrals over Voronoi region
+            if self.config.get('FILTER_SETUP','filter_type')=='UKF':
+                phi_est = np.array([self.sensor_function(np.array([x,y]), self.kalman_filter.x, self.kalman_filter.P) for x,y in zip(xp,yp)])
+
+        else:
+            phi_est = self.sampled_sensor_values
+            xp = self.planned_path[:,0]
+            yp = self.planned_path[:,1]
+
+        if self.config.getboolean('VORONOI_SETUP','enable_scaling'):
+            # phi_est_normalized = (phi_est - np.min(phi_est)) / (np.max(phi_est) - np.min(phi_est))
+            # xp_normalized = (xp - np.min(xp)) / (np.max(xp) - np.min(xp))
+            # yp_normalized = (yp - np.min(yp)) / (np.max(yp) - np.min(yp))
+
+            # mv = np.sum(phi_est_normalized)
+            # cx = np.sum(xp_normalized/(self.grid_resolution) * phi_est_normalized) / mv
+            # cy = np.sum(yp_normalized/(self.grid_resolution) * phi_est_normalized) / mv
+
+            # phi_est_normalized = phi_est
+            # mv = np.sum(phi_est_normalized)
+            # cx = np.sum(xp_normalized * phi_est_normalized) / mv
+            # cy = np.sum(yp_normalized * phi_est_normalized) / mv
+
+            # Perform MinMax normalization on xp, yp, and phi_est
+            xp_normalized = (xp - np.min(xp)) / (np.max(xp) - np.min(xp))
+            yp_normalized = (yp - np.min(yp)) / (np.max(yp) - np.min(yp))
+            phi_est_normalized = (phi_est - np.min(phi_est)) / (np.max(phi_est) - np.min(phi_est))
+
+            # Calculate the range of phi_est
+            phi_est_range = np.max(phi_est) - np.min(phi_est)
+
+            # Scale xp and yp to the range of phi_est
+            xp_scaled = xp_normalized * phi_est_range
+            yp_scaled = yp_normalized * phi_est_range
+
+            # Calculate the new center coordinates
+            mv = np.sum(phi_est_normalized)
+            cx = np.sum(xp_scaled * phi_est_normalized) / mv
+            cy = np.sum(yp_scaled * phi_est_normalized) / mv
+
+        else:
+            mv = np.sum(phi_est)
+            cx = np.sum(xp * phi_est) / mv
+            cy = np.sum(yp * phi_est) / mv
 
         if np.isnan(cx) or np.isnan(cy):
             rospy.loginfo(f"Encountered KF nan for drone{self.drone_id}. Setting to last visited point {self.planned_path[1]}")

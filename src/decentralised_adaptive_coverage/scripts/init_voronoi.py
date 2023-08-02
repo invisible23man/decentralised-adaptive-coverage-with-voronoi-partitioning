@@ -18,7 +18,7 @@ def init_voronoi_node():
 
     # Perform initial setup
     vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
-        grid_points, weed_density, initial_estimates, boundary_points, all_vertices= \
+        grid_points, weed_density, boundary_points, all_vertices= \
             initial_setup(config, plots=False)
 
     # Create ROS publishers for variables

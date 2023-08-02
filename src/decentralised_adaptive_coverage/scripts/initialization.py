@@ -1,7 +1,6 @@
 import numpy as np
 from utils import plots, voronoi
-from sklearn.neighbors import KernelDensity
-
+from scipy.stats import multivariate_normal
 
 def distribute_drones(n, r, plot=False, grid_resolution=0.1):
     """
@@ -40,31 +39,6 @@ def distribute_drones(n, r, plot=False, grid_resolution=0.1):
 
     return positions
 
-
-def generate_kde_centers(num_centers, radius):
-    """
-    Generate random centers within a circular boundary.
-
-    Args:
-        num_centers (int): Number of centers to generate.
-        radius (float): Radius of the circular boundary.
-
-    Returns:
-        numpy.ndarray: Array of shape (num_centers, 2) containing the generated centers.
-
-    """
-    centers = []
-    for _ in range(num_centers):
-        # Generate random polar coordinates and convert to Cartesian
-        angle = np.random.uniform(0, 2*np.pi)
-        # Prevents clustering at center
-        rad = radius * np.sqrt(np.random.uniform(0, 1))
-        x = rad * np.cos(angle)
-        y = rad * np.sin(angle)
-        centers.append([x, y])
-    return np.array(centers)
-
-
 def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolution=0.1, plot=False):
     """
     Generate a weed concentration distribution within a circular boundary.
@@ -88,33 +62,26 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
     current_random_state = np.random.get_state()
 
     # Define the grid for estimation
-    x_min, x_max = -r, r
-    y_min, y_max = -r, r
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, grid_resolution),
-                         np.arange(y_min, y_max, grid_resolution))
+    xx, yy = np.meshgrid(np.arange(-r, r, grid_resolution),
+                         np.arange(-r, r, grid_resolution))
     grid_points = np.c_[xx.ravel(), yy.ravel()]
 
     # Generate sample weed concentration data
-    # np.random.seed(500) #r=50
-    np.random.seed(3500) #r=25
-    weed_concentration = np.concatenate([np.random.normal(loc=center, scale=[0.1, 0.05], size=(100, 2))
-                                        for center in generate_kde_centers(num_gaussians, r)])
-
-    # Perform kernel density estimation
-    kde = KernelDensity(bandwidth=bandwidth, kernel='gaussian')
-    kde.fit(weed_concentration)
-    weed_density = np.exp(kde.score_samples(grid_points))
-
-    # Reshape the density values to match the grid shape
-    density_map = weed_density.reshape(xx.shape)
+    weed_centers = [[-r/2, -r/2], [r/2, r/2]]
+    weed_cov = [[r/4, 0], [0, r/4]]
+    weeds = np.zeros(xx.shape)
+    for center in weed_centers:
+        rv = multivariate_normal(center, weed_cov)
+        weeds += rv.pdf(np.dstack((xx, yy)))
 
     if plot:
-        plots.plot_weed_distribution(xx, yy, density_map)
+        plots.plot_weed_distribution(xx, yy, weeds.reshape(xx.shape))
 
     # Restore the random number generator state
     np.random.set_state(current_random_state)
 
-    return xx, yy, grid_points, weed_density
+    # return xx, yy, grid_points, weed_density
+    return xx, yy, grid_points, weeds.ravel()
 
 
 def initial_setup(config, **kwargs):
@@ -146,47 +113,20 @@ def initial_setup(config, **kwargs):
     grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
     num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
     bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
-    boundary_point_resolution = config.getint('VORONOI_SETUP','boundary_point_resolution')
-
-    filter_type = config.get('INITIAL_SETUP', 'filter_type')
-    num_particles = config.getint('INITIAL_SETUP', 'num_particles')
 
     # Get initial positions
     initial_positions = distribute_drones(n, r, plot, grid_resolution)
 
     # Compute Voronoi diagram within the circular boundaries
-    # boundary_points = np.array(
-    #     [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, boundary_point_resolution)])
-    # r_exterior = 1.7*r # r=50
-    # r_exterior = 1.1*r # r=25
-    r_exterior = 1.7*r # r=25
+    r_exterior = 1.7*r 
     boundary_points = np.array([[r_exterior*np.cos(theta), r_exterior*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
-
-
 
     vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = \
         voronoi.compute_voronoi_with_boundaries(
             initial_positions, boundary_points, plot, r)
-            # initial_positions, (exterior_boundary_points,boundary_points), plot)
 
     # Function generate weed distribution(AOIs) within the circular boundary
     xx, yy, grid_points, weed_density = generate_weed_distribution(
         r, num_gaussians, bandwidth, grid_resolution=grid_resolution, plot=plot)
 
-    # Initialize estimates
-    if filter_type == 'Kalman':
-        initial_estimates = [(position, r**2 * np.eye(2))
-                             for position in initial_positions]
-    elif filter_type == 'Particle':
-        if 'num_particles' in kwargs:
-            num_particles = kwargs['num_particles']
-            initial_estimates = [distribute_drones(
-                num_particles, r) for _ in range(n)]
-        else:
-            raise ValueError(
-                "The number of particles ('num_particles') should be provided for the Particle filter.")
-    else:
-        raise ValueError(
-            "filter_type should be either 'Kalman' or 'Particle'.")
-
-    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, initial_estimates, boundary_points, all_vertices
+    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, boundary_points, all_vertices

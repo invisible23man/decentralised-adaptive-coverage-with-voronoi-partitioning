@@ -25,7 +25,7 @@ time_per_step = config.getfloat('SIMULATION_SETUP', 'time_per_step')
 
 # Perform initial setup
 vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
-    grid_points, weed_density, initial_estimates, boundary_point, all_vertices = \
+    grid_points, weed_density, boundary_point, all_vertices = \
         initial_setup(config, plots=False)
 
 # Visualize the initial state
