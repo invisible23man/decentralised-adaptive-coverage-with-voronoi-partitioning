@@ -24,7 +24,7 @@
         {
             "name": "Python: Current File",
             "type": "python",
-            "python": "/home/invisibleman/anaconda3/envs/drones/bin/python",
+            "python": "/home/invisible23man/anaconda3/envs/drones/bin/python",
             "preLaunchTask": "selectDebugConfig",
             "request": "launch",
             "program": "${file}",

@@ -5,12 +5,13 @@ import rospy
 from iq_gnc.py_gnc_functions_swarm import gnc_api
 from iq_gnc.PrintColours import *
 from std_msgs.msg import String
+from std_srvs.srv import SetBool, SetBoolResponse
 from geometry_msgs.msg import Point as rosMsgPoint
-from utils import callbacks, voronoi, msg_handler
+from gazebo_msgs.msg import ModelStates
 from shapely.geometry import Point, Polygon
+from utils import callbacks, voronoi, msg_handler
 from move import generate_trajectory
 from sensor import gaussian_sensor_model
-from gazebo_msgs.msg import ModelStates
 from models.Robots import Robot
 
 class Drone(Robot):
@@ -256,6 +257,9 @@ class Drone(Robot):
             rospy.loginfo("Initialized Kalman Filter")
             self.set_initial_state(self.voronoi_center, self.initial_covariance)
             self.move_and_sense_started = True
+
+    def handle_ready_service(req):
+        return SetBoolResponse(True, 'Drone is ready to publish state and covariance')
 
     def publish_state_and_covariance(self):
         if self.apply_consensus:

@@ -4,7 +4,7 @@ from utils import plots
 from scipy.spatial import KDTree
 import networkx as nx
 
-def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
+def compute_voronoi_with_boundaries(points, boundary_points, plot=False, r=50):
     """
     Compute a Voronoi diagram with specified boundary points and filter out infinite regions and 
     regions associated with boundary points.
@@ -41,7 +41,7 @@ def compute_voronoi_with_boundaries(points, boundary_points, plot=False):
     voronoi_centers = np.array([vor.points[np.where(vor.point_region == vor.regions.index(region))[0][0]] for region in finite_regions])
 
     if plot:
-        plots.plot_voronoi(vor, finite_vertices, points)
+        plots.plot_voronoi(vor, finite_vertices, points, r)
 
     return vor, finite_vertices, finite_regions, voronoi_centers, vor.vertices
 

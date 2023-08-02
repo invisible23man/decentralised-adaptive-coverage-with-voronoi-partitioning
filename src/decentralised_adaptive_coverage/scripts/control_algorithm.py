@@ -6,6 +6,7 @@ import time
 import pickle
 import os
 from tqdm import tqdm
+from std_srvs.srv import SetBool
 from models import Drones
 
 def main():
@@ -40,6 +41,10 @@ def main():
         
         rospy.loginfo(f"Started Kalman Update:drone{drone.drone_id}, iter:{i}")
         drone.update()
+        
+        # rospy.Service(f'/drone{drone.drone_id}/ready', SetBool, drone.handle_ready_service)
+        
+        # drone.callback_handler.ready_service_callback()
 
         # Wait until all drones have published their state and covariance
         if config.getboolean('FILTER_SETUP','apply_consensus'):

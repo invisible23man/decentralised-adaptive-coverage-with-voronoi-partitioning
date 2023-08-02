@@ -1,6 +1,8 @@
 from utils import msg_handler
 from utils.transformations import model_states_callback
 import numpy as np
+from std_srvs.srv import SetBool
+import rospy
 
 class CallbackHandler:
     def __init__(self, drone):
@@ -45,4 +47,17 @@ class CallbackHandler:
     def mavros_set_home_callback(self, data, drone_number):
         self.drone.drone.transformation_matrix = model_states_callback(data, drone_number+1)
 
-      
+
+    def ready_service_callback(self):
+        for i in range(self.drone.config.getint('INITIAL_SETUP','n_drones')):
+            if i != self.drone.drone_id:  # Don't call our own service
+                rospy.wait_for_service(f'/drone{i}/ready')
+                try:
+                    ready_service = rospy.ServiceProxy(f'/drone{i}/ready', SetBool)
+                    resp = ready_service()
+                    if not resp.success:
+                        rospy.logerr(f'Drone {i} is not ready')
+                        # Handle the error, e.g., by waiting and trying again
+                except rospy.ServiceException as e:
+                    rospy.logerr(f'Service call failed: {e}')
+                    # Handle the error

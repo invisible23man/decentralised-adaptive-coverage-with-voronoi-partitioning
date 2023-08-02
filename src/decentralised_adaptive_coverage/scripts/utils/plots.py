@@ -163,7 +163,7 @@ def visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, y
     visualize_swarm(voronoi_centers, r)
 
     # Visualize the Voronoi diagram
-    plot_voronoi(all_vertices, finite_vertices, voronoi_centers)
+    plot_voronoi(all_vertices, finite_vertices, voronoi_centers, r)
 
     # Visualize the weed distribution
     plot_weed_distribution(xx, yy, weed_density.reshape(xx.shape))

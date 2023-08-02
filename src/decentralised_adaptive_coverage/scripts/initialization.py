@@ -95,7 +95,8 @@ def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolut
     grid_points = np.c_[xx.ravel(), yy.ravel()]
 
     # Generate sample weed concentration data
-    np.random.seed(500)
+    # np.random.seed(500) #r=50
+    np.random.seed(3500) #r=25
     weed_concentration = np.concatenate([np.random.normal(loc=center, scale=[0.1, 0.05], size=(100, 2))
                                         for center in generate_kde_centers(num_gaussians, r)])
 
@@ -156,14 +157,16 @@ def initial_setup(config, **kwargs):
     # Compute Voronoi diagram within the circular boundaries
     # boundary_points = np.array(
     #     [[r*np.cos(theta), r*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, boundary_point_resolution)])
-    r_exterior = 1.7*r
+    # r_exterior = 1.7*r # r=50
+    # r_exterior = 1.1*r # r=25
+    r_exterior = 1.7*r # r=25
     boundary_points = np.array([[r_exterior*np.cos(theta), r_exterior*np.sin(theta)] for theta in np.linspace(0, 2*np.pi, 100)])
 
 
 
     vor, finite_vertices, finite_regions, voronoi_centers, all_vertices = \
         voronoi.compute_voronoi_with_boundaries(
-            initial_positions, boundary_points, plot)
+            initial_positions, boundary_points, plot, r)
             # initial_positions, (exterior_boundary_points,boundary_points), plot)
 
     # Function generate weed distribution(AOIs) within the circular boundary
