@@ -2,7 +2,7 @@
 
 import configparser
 from initialization import initial_setup
-from move import voronoi_coverage_with_rectangular_spirals
+from move import voronoi_coverage
 from utils import plots
 from tqdm import tqdm
 
@@ -15,6 +15,8 @@ config.read(
 n_drones = config.getint('INITIAL_SETUP', 'n_drones')
 r_area = config.getfloat('INITIAL_SETUP', 'r_area')
 grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
+coverage_method = config.get('VORONOI_SETUP', 'coverage_method')
+
 filter_type = config.get('INITIAL_SETUP', 'filter_type')
 num_particles = config.getint('INITIAL_SETUP', 'num_particles')
 
@@ -30,9 +32,9 @@ vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, \
 plots.visualize_initial_state(all_vertices, finite_vertices, finite_regions, xx, yy, grid_points, weed_density, voronoi_centers, [], r_area)
 
 # Plot Spiral Coverage for initial state
-spiral_paths, sensor_values = voronoi_coverage_with_rectangular_spirals(all_vertices, finite_regions, voronoi_centers, 
+spiral_paths, sensor_values = voronoi_coverage(all_vertices, finite_regions, voronoi_centers, 
     grid_resolution, grid_points, weed_density,
-    sampling_time, time_per_step)
+    sampling_time, time_per_step, coverage_method)
 
 # Vizualize coverage path
 plots.plot_voronoi_and_spirals(all_vertices, finite_vertices, finite_regions, voronoi_centers, spiral_paths, grid_resolution)
