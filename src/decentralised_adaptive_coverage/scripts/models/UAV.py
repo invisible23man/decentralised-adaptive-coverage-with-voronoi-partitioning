@@ -2,7 +2,7 @@ import sys
 sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/')
 
 from models.Environment import Field
-from models.Sensor import sense_field
+from models.Sensor import sense_field, estimate_field
 from tools import voronoi, planner as planpath
 from tqdm import tqdm
 import numpy as np
@@ -27,6 +27,7 @@ class Drone:
         
         self.sampling_time = field.sampling_time
         self.true_sensor = sense_field
+        self.estimator_sensor = estimate_field
         self.measurements = []
         self.scaling_enabled = False
         self.estimation_enabled = False 
@@ -54,7 +55,7 @@ class Drone:
     def estimate(self):
         if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
             self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
-            self.estimated_measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.remaining_path]))
+            self.estimated_measurements = np.squeeze(np.array([self.estimator_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.remaining_path]))
                 
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)

@@ -1,4 +1,6 @@
 from scipy.interpolate import griddata
+from scipy.spatial.distance import cdist
+import numpy as np
 
 def sense_field(coordinate, grid_points, weed_distribution, method='nearest'):
     """
@@ -16,6 +18,28 @@ def sense_field(coordinate, grid_points, weed_distribution, method='nearest'):
     sensed_density = griddata(grid_points, weed_distribution, coordinate, method=method)
     
     return sensed_density
+
+def estimate_field(coordinate, grid_points, weed_distribution, sigma=1.0):
+    """
+    Function to estimate the weed density at a given coordinate in the field.
+    Args:
+    coordinate : Coordinate at which the weed density needs to be estimated.
+    grid_points : The grid points of the field.
+    weed_distribution : The corresponding weed distribution at each grid point.
+    sigma : Standard deviation for Gaussian kernel.
+
+    Returns:
+    estimated_density : The estimated weed density at the given coordinate.
+    """
+
+    # Calculate Gaussian kernel
+    distances = cdist(grid_points, np.atleast_2d(coordinate), 'euclidean')
+    kernel_values = np.exp(-distances ** 2 / (2 * sigma ** 2))
+
+    # Use the kernel values to calculate a weighted average of the weed distribution
+    estimated_density = np.average(weed_distribution, weights=kernel_values.flatten())
+
+    return estimated_density
 
 if __name__ == '__main__':
 
