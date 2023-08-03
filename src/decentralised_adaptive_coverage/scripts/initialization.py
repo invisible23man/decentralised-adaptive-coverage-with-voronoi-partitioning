@@ -2,6 +2,37 @@ import numpy as np
 from utils import plots, voronoi
 from scipy.stats import multivariate_normal
 
+def create_square_grid(size, grid_resolution):
+    x_values = np.arange(-size/2, size/2 + grid_resolution, grid_resolution)
+    y_values = np.arange(-size/2, size/2  + grid_resolution, grid_resolution)
+    grid_points = np.array([(x, y) for y in y_values for x in x_values])
+    return x_values, y_values, grid_points
+
+def create_circular_grid(center=(0,0), radius=25, resolution=1):
+    """Create a grid covering the circular field."""
+    x_values = np.arange(-radius, radius + resolution, resolution)
+    y_values = np.arange(-radius, radius + resolution, resolution)
+    grid_points = np.array([(x, y) for x in x_values for y in y_values if np.sqrt(x**2 + y**2) <= radius])
+
+    return  x_values, y_values, grid_points
+
+def generate_weed_distribution(weed_centers, weed_cov, X, Y, sensing_radius, plot=False):
+    # Save the current state of the random number generator
+    current_random_state = np.random.get_state()
+    
+    weed_distribution = np.zeros(X.shape)
+    for center in weed_centers:
+        rv = multivariate_normal(center, weed_cov)
+        for i in range(X.shape[0]):
+            for j in range(X.shape[1]):
+                if np.sqrt(X[i, j]**2 + Y[i, j]**2) <= sensing_radius:
+                    weed_distribution[i, j] = rv.pdf([X[i, j], Y[i, j]])
+                else:
+                    weed_distribution[i, j] = np.nan
+
+    np.random.set_state(current_random_state)
+    return weed_distribution
+
 def distribute_drones(n, r, plot=False, grid_resolution=0.1):
     """
     Distributes 'n' drones evenly within a circular area of radius 'r' and aligns their positions with the center of the grid.
@@ -39,51 +70,6 @@ def distribute_drones(n, r, plot=False, grid_resolution=0.1):
 
     return positions
 
-def generate_weed_distribution(r, num_gaussians=3, bandwidth=0.085, grid_resolution=0.1, plot=False):
-    """
-    Generate a weed concentration distribution within a circular boundary.
-
-    Args:
-        r (float): Radius of the circular boundary.
-        num_gaussians (int): Number of Gaussian distributions to generxsate.
-        bandwidth (float): Bandwidth parameter for the kernel density estimation. Change to modify spread.
-        grid_resolution (float): factor determining how fine or coarse your grid is
-
-    Returns:
-        numpy.ndarray: 2D array of shape (n, m) representing the X coordinates of grid points.
-        numpy.ndarray: 2D array of shape (n, m) representing the Y coordinates of grid points.
-        numpy.ndarray: 2D array of shape (n, m) representing the grid points.
-        numpy.ndarray: 2D array of shape (n, m) representing the weed densities.
-
-
-    """
-
-    # Save the current state of the random number generator
-    current_random_state = np.random.get_state()
-
-    # Define the grid for estimation
-    xx, yy = np.meshgrid(np.arange(-r, r, grid_resolution),
-                         np.arange(-r, r, grid_resolution))
-    grid_points = np.c_[xx.ravel(), yy.ravel()]
-
-    # Generate sample weed concentration data
-    weed_centers = [[-r/2, -r/2], [r/2, r/2]]
-    weed_cov = [[r/4, 0], [0, r/4]]
-    weeds = np.zeros(xx.shape)
-    for center in weed_centers:
-        rv = multivariate_normal(center, weed_cov)
-        weeds += rv.pdf(np.dstack((xx, yy)))
-
-    if plot:
-        plots.plot_weed_distribution(xx, yy, weeds.reshape(xx.shape))
-
-    # Restore the random number generator state
-    np.random.set_state(current_random_state)
-
-    # return xx, yy, grid_points, weed_density
-    return xx, yy, grid_points, weeds.ravel()
-
-
 def initial_setup(config, **kwargs):
     """
     Performs the initial setup for the drone swarm optimization algorithm.
@@ -113,6 +99,8 @@ def initial_setup(config, **kwargs):
     grid_resolution = config.getfloat('INITIAL_SETUP', 'grid_resolution')
     num_gaussians = config.getint('INITIAL_SETUP', 'num_gaussians')
     bandwidth = config.getfloat('INITIAL_SETUP', 'bandwidth')
+    weed_centers = [[-r/2, -r/2], [r/2, r/2]]
+    weed_cov = [[r/4, 0], [0, r/4]]
 
     # Get initial positions
     initial_positions = distribute_drones(n, r, plot, grid_resolution)
@@ -125,8 +113,10 @@ def initial_setup(config, **kwargs):
         voronoi.compute_voronoi_with_boundaries(
             initial_positions, boundary_points, plot, r)
 
-    # Function generate weed distribution(AOIs) within the circular boundary
-    xx, yy, grid_points, weed_density = generate_weed_distribution(
-        r, num_gaussians, bandwidth, grid_resolution=grid_resolution, plot=plot)
+    x_values, y_values, grid_points = create_circular_grid(center=(0,0), radius=r, resolution=grid_resolution)
+    xx, yy = np.meshgrid(x_values, y_values)
 
-    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_density, boundary_points, all_vertices
+    # Function generate weed distribution(AOIs) within the sensing area
+    weed_distribution = generate_weed_distribution(weed_centers, weed_cov, xx, yy, r, plot=plot)
+
+    return vor, finite_vertices, finite_regions, voronoi_centers, xx, yy, grid_points, weed_distribution, boundary_points, all_vertices

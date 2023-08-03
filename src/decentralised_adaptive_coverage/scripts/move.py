@@ -2,7 +2,7 @@ from typing import Optional
 from shapely.geometry import Point, Polygon
 import numpy as np
 from iq_gnc.py_gnc_functions_swarm import rospy, gnc_api, Odometry
-from sensor import sample_weed_density, sense
+from sensor import sample_weed_density, sense as sense
 from utils.transformations import apply_transformation_matrix
 
 def move_to_point(x, y, grid_resolution, dx, dy, voronoi_region, boundary_tolerance):

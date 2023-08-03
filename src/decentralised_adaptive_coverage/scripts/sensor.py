@@ -15,6 +15,7 @@ def sense(point, grid_points, weed_density, method='linear'):
         float: Weed concentration at the given coordinate.
 
     """
+    weed_density.ravel()
     return griddata(grid_points, weed_density, point, method='nearest')
 
 def sense2(point, grid_points, weed_density, grid_resolution=1):
@@ -26,6 +27,30 @@ def sense2(point, grid_points, weed_density, grid_resolution=1):
     else:
         sampled_value = 0  # No weed detected if the point is not within the grid resolution
     return sampled_value
+
+def sense3(point, grid_points, weed_density, grid_resolution=1):
+    """Sample the weed density at each point in the path."""
+    sampled_value = np.array(weed_density[int(point[0]), int(point[1])])
+    return sampled_value
+
+def sense4(point, X, Y, weed_distribution):
+    # Flatten the arrays
+    flat_X = X.flatten()
+    flat_Y = Y.flatten()
+    flat_weed_distribution = weed_distribution.flatten()
+
+    # Filter out the NaN values
+    valid_indices = ~np.isnan(flat_weed_distribution)
+    valid_X = flat_X[valid_indices]
+    valid_Y = flat_Y[valid_indices]
+    valid_weed_distribution = flat_weed_distribution[valid_indices]
+
+    # Create an array of valid grid points
+    valid_grid_points = np.vstack((valid_X, valid_Y)).T
+
+    # Use griddata to find the weed concentration at the given point
+    return griddata(valid_grid_points, valid_weed_distribution, point, method='nearest')
+
 
 def gaussian_sensor_model(point, mean, covariance):
     """
