@@ -35,7 +35,7 @@ class Field:
             for j in range(side_length):
                 x = -self.size/2 + step * i + step/2
                 y = -self.size/2 + step * j + step/2
-                drone_positions.append((x, y, 5)) # Z-coordinate of 5m
+                drone_positions.append((x, y, 3)) # Z-coordinate of 3m
         return np.array(drone_positions)
 
     def generate_weed_distribution(self):
