@@ -1,7 +1,10 @@
+from matplotlib import animation
 import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import pickle
+import os
 
 class Field:
     def __init__(self, size, grid_resolution, drone_count, weed_centers, weed_cov):
@@ -20,6 +23,11 @@ class Field:
         # Generate weed distribution
         self.weed_distribution = self.generate_weed_distribution()
         
+        # Experiment Logging
+        self.drone_position_tracker = [self.drone_positions]
+        self.path_tracker = [[] for _ in range(drone_count)]
+        self.measurement_tracker = [[] for _ in range(drone_count)]        
+
     def create_square_grid(self):
         x_values = np.arange(-self.size/2, self.size/2 + self.grid_resolution, self.grid_resolution)
         y_values = np.arange(-self.size/2, self.size/2  + self.grid_resolution, self.grid_resolution)
@@ -45,7 +53,25 @@ class Field:
             rv = multivariate_normal(center, self.weed_cov)
             weed_distribution += rv.pdf(self.grid_points)
         return weed_distribution
-    
+
+    def update_drone_positions(self, drone_positions):
+        # self.drone_positions = drone_positions
+        self.drone_position_tracker.append(drone_positions)
+
+    def update_path_and_measurements(self, drones):
+        for i, drone in enumerate(drones):
+            self.path_tracker[i].append(drone.lawnmower_path)
+            self.measurement_tracker[i].append(drone.measurements)
+
+    def save_data(self, filename):
+        data = {
+            'positions': self.drone_position_tracker,
+            'paths': self.path_tracker,
+            'measurements': self.measurement_tracker
+        }
+        with open(filename, 'wb') as f:
+            pickle.dump(data, f)
+
     def plot_field(self):
         # Plot the field with drone positions and weed distribution
         plt.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
@@ -69,6 +95,62 @@ class Field:
         ax.set_ylabel('Y')
         ax.set_zlabel('Weed density')
         ax.set_title('Field with Drones and Weed Distribution (3D)')
+        plt.show()
+
+    def animate_field_2d(self, filename=None):
+        fig, ax = plt.subplots()
+
+        # Initial plot setup
+        ax.set_xlim([-self.size/2, self.size/2])
+        ax.set_ylim([-self.size/2, self.size/2])
+        ax.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
+        drone_positions = np.array(self.drone_position_tracker[0])
+        scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], color='red')
+
+        def animate(i):
+            drone_positions = np.array(self.drone_position_tracker[i])
+            ax.clear()
+            ax.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
+            scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], color='red')
+            ax.set_xlim([-self.size/2, self.size/2])
+            ax.set_ylim([-self.size/2, self.size/2])
+            ax.set_title(f'Field with Drones and Weed Distribution - Iteration {i+1}')
+
+        ani = animation.FuncAnimation(fig, animate, frames=len(self.drone_position_tracker), repeat=True)
+
+        if filename:
+            ani.save(filename)
+
+        plt.show()
+
+    def animate_field_3d(self, filename=None):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        X, Y = np.meshgrid(self.x_values, self.y_values)
+        drone_positions = np.array(self.drone_position_tracker[0])
+        scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], drone_positions[:, 2], color='red')
+        ax.plot_surface(X, Y, self.weed_distribution.reshape(X.shape), cmap='viridis', alpha=0.5)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Weed density')
+        ax.set_title('Field with Drones and Weed Distribution (3D)')
+
+        def animate(i):
+            drone_positions = np.array(self.drone_position_tracker[i])
+            ax.clear()
+            ax.plot_surface(X, Y, self.weed_distribution.reshape(X.shape), cmap='viridis', alpha=0.5)
+            scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], drone_positions[:, 2], color='red')
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Weed density')
+            ax.set_title(f'Field with Drones and Weed Distribution (3D) - Iteration {i+1}')
+
+        ani = animation.FuncAnimation(fig, animate, frames=len(self.drone_position_tracker), repeat=True)
+
+        if filename:
+            ani.save(filename)
+
         plt.show()
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 from models import Environment,UAV
 from tqdm import tqdm
+import os
 
 if __name__ == "__main__":
 
@@ -9,7 +10,13 @@ if __name__ == "__main__":
     drone_count = 16
     weed_centers = [[-size/4, -size/4], [size/4, size/4]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 10
+    iterations = 5
+
+    EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
+    EXPERIMENT_TIMESTAMP = ''
+    EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'data.pkl')
+    ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'animation2d.gif')
+    ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'animation3d.gif')
 
     field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov)
     field.plot_field()
@@ -30,7 +37,17 @@ if __name__ == "__main__":
             drone.update_voronoi()
             # print(f"Drone {i+1} Centers: {drone.voronoi_center_tracker}")
 
-            # Update the drone positions in the field
+            # Drone Posiiton update to be moved ot outer loop for asynchronous update later
             field.drone_positions[i] = drone.position
 
-        field.plot_field()
+        # Update the drone positions and path measurements in the field
+        field.update_drone_positions([drone.position for drone in drones])
+        field.update_path_and_measurements(drones)
+
+        # field.plot_field()
+
+    # Save data
+    field.save_data(EXPERIMENT_FILENAME)
+
+    field.animate_field_2d(ANIMATION2D_FILENAME)
+    field.animate_field_3d(ANIMATION3D_FILENAME)
