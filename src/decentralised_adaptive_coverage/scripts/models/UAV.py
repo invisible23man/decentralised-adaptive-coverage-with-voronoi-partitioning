@@ -29,6 +29,7 @@ class Drone:
         self.true_sensor = sense_field
         self.measurements = []
         self.scaling_enabled = False
+        self.estimation_enabled = False 
         
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(self.drone_positions, 'square', self.field_size)
@@ -44,18 +45,30 @@ class Drone:
         self.lawnmower_path_tracker.append(self.lawnmower_path)
 
     def sense(self):
-        if self.sampling_time:
-            lawnmower_path = self.lawnmower_path[:min(self.sampling_time, len(self.lawnmower_path))]
-        self.measurements = np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in lawnmower_path])
+        if self.sampling_time: # Cut Short Sampling Path
+            self.lawnmower_sampling_path = self.lawnmower_path[:min(self.sampling_time, len(self.lawnmower_path))]
+        else:
+            self.lawnmower_sampling_path = self.lawnmower_path
+        self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.lawnmower_sampling_path]))
+
+    def estimate(self):
+        if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
+            self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
+            self.estimated_measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.remaining_path]))
+                
+            self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
+            self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
+            print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
 
     def update_voronoi(self):
         if self.scaling_enabled:
             scaling_factor = self.grid_resolution*1000
         else:
             scaling_factor = 1
+
         mv = np.sum(self.measurements)*scaling_factor
-        cx = np.sum(np.squeeze(self.lawnmower_path[:self.measurements.shape[0], 0]) * np.squeeze(self.measurements)) / mv
-        cy = np.sum(np.squeeze(self.lawnmower_path[:self.measurements.shape[0], 1]) * np.squeeze(self.measurements)) / mv
+        cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements) / mv
+        cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements) / mv
         new_center = [cx+self.grid_resolution/1000, cy+self.grid_resolution/1000, self.altitude]
         self.voronoi_center_tracker.append(new_center)
         self.position = np.array(new_center)

@@ -12,7 +12,7 @@ if __name__ == "__main__":
     weed_centers = [[-size/4, -size/4], [size/4, size/4]]
     weed_cov = [[5, 0], [0, 5]]
     iterations = 5
-    sampling_time = 144
+    sampling_time = 9
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
@@ -37,10 +37,12 @@ if __name__ == "__main__":
                 drone.voronoi_center_tracker.append(drone.position)
                 drone.measurements = []
                 field.drone_positions[i] = drone.position
-                continue
+                continue   
 
             drone.sense()
             # print(f"Drone {i+1} Measurements: {drone.measurements[:10]}")
+
+            drone.estimate()
 
             drone.update_voronoi()
             # print(f"Drone {i+1} Centers: {drone.voronoi_center_tracker}")
