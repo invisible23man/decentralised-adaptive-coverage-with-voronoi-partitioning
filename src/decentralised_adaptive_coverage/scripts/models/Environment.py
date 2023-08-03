@@ -36,6 +36,11 @@ class Field:
         grid_points = np.array([(x, y) for y in y_values for x in x_values])
         return x_values, y_values, grid_points
 
+    def get_grid_coordinates(self, point):
+        i = int((point[0] + self.size / 2) / self.grid_resolution)
+        j = int((point[1] + self.size / 2) / self.grid_resolution)
+        return i, j
+
     def distribute_drones(self):
         # Distribute drones equidistant in square pattern
         side_length = int(np.sqrt(self.drone_count))

@@ -9,10 +9,11 @@ if __name__ == "__main__":
     size = 50
     grid_resolution = 1 
     drone_count = 16
-    weed_centers = [[-size/4, -size/4], [size/4, size/4]]
+    # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
+    weed_centers = [[-20, 0], [15, -15]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 5
-    sampling_time = 9
+    iterations = 30
+    sampling_time = 30
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
@@ -59,5 +60,5 @@ if __name__ == "__main__":
     # Save data
     field.save_data(EXPERIMENT_FILENAME)
 
-    # field.animate_field_2d(plot_voronoi=True, filename=ANIMATION2D_FILENAME)
+    field.animate_field_2d(plot_voronoi=True, filename=ANIMATION2D_FILENAME)
     field.animate_field_3d(plot_voronoi=True, filename=ANIMATION3D_FILENAME)

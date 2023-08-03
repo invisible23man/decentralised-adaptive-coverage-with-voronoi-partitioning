@@ -18,6 +18,7 @@ class Drone:
         self.field_size = field.size
         self.grid_resolution = field.grid_resolution
         self.grid_points = field.grid_points
+        self.get_grid_coordinates = field.get_grid_coordinates
         self.true_weed_distribution = field.weed_distribution
         
         self.voronoi_region = None
@@ -31,6 +32,7 @@ class Drone:
         self.measurements = []
         self.scaling_enabled = False
         self.estimation_enabled = False 
+        self.estimated_weed_distribution = np.ones_like(field.weed_distribution) / np.prod(field.weed_distribution.shape)
         
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(self.drone_positions, 'square', self.field_size)
@@ -52,11 +54,15 @@ class Drone:
             self.lawnmower_sampling_path = self.lawnmower_path
         self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.lawnmower_sampling_path]))
 
+        for point, measurement in zip(self.lawnmower_path, self.measurements):
+            grid_x, grid_y = self.get_grid_coordinates(point)
+            index_1d = grid_x * int(self.field_size/self.grid_resolution) + grid_y
+            self.estimated_weed_distribution[index_1d] = measurement   
+
     def estimate(self):
         if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
             self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
-            self.estimated_measurements = np.squeeze(np.array([self.estimator_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.remaining_path]))
-                
+            self.estimated_measurements = np.squeeze(np.array([self.estimator_sensor(point, self.grid_points, self.estimated_weed_distribution) for point in self.remaining_path]))    
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
             print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
