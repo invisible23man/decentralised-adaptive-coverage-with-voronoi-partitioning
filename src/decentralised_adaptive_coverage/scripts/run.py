@@ -12,14 +12,14 @@ if __name__ == "__main__":
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-20, 0], [15, -15]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 50
+    iterations = 30
     sampling_time = 30
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
     EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-data.pkl')
-    ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'s-{sampling_time}-it{iterations}-animation2d.gif')
-    ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'s-{sampling_time}-it{iterations}-animation3d.gif')
+    ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-animation2d.gif')
+    ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-animation3d.gif')
 
     field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
     field.plot_field()
