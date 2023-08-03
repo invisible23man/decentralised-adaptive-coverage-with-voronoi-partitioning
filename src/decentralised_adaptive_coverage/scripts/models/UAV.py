@@ -14,14 +14,18 @@ class Drone:
         self.position = position
         self.altitude = 3
         self.drone_positions = field.drone_positions
+
         self.field_size = field.size
         self.grid_resolution = field.grid_resolution
         self.grid_points = field.grid_points
         self.true_weed_distribution = field.weed_distribution
+        
         self.voronoi_region = None
         self.voronoi_center_tracker = [position]    
         self.lawnmower_path = None
         self.lawnmower_path_tracker = []
+        
+        self.sampling_time = field.sampling_time
         self.true_sensor = sense_field
         self.measurements = []
         self.scaling_enabled = False
@@ -40,7 +44,9 @@ class Drone:
         self.lawnmower_path_tracker.append(self.lawnmower_path)
 
     def sense(self):
-        self.measurements = np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.lawnmower_path])
+        if self.sampling_time:
+            lawnmower_path = self.lawnmower_path[:min(self.sampling_time, len(self.lawnmower_path))]
+        self.measurements = np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in lawnmower_path])
 
     def update_voronoi(self):
         if self.scaling_enabled:
@@ -48,8 +54,8 @@ class Drone:
         else:
             scaling_factor = 1
         mv = np.sum(self.measurements)*scaling_factor
-        cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * np.squeeze(self.measurements)) / mv
-        cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * np.squeeze(self.measurements)) / mv
+        cx = np.sum(np.squeeze(self.lawnmower_path[:self.measurements.shape[0], 0]) * np.squeeze(self.measurements)) / mv
+        cy = np.sum(np.squeeze(self.lawnmower_path[:self.measurements.shape[0], 1]) * np.squeeze(self.measurements)) / mv
         new_center = [cx+self.grid_resolution/1000, cy+self.grid_resolution/1000, self.altitude]
         self.voronoi_center_tracker.append(new_center)
         self.position = np.array(new_center)

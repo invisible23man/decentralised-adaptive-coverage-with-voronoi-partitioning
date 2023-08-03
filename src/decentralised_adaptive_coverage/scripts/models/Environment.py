@@ -7,12 +7,13 @@ import pickle
 import os
 
 class Field:
-    def __init__(self, size, grid_resolution, drone_count, weed_centers, weed_cov):
+    def __init__(self, size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time = 10):
         self.size = size
         self.grid_resolution = grid_resolution
         self.drone_count = drone_count
         self.weed_centers = weed_centers
         self.weed_cov = weed_cov
+        self.sampling_time = sampling_time
         
         # Create square grid
         self.x_values, self.y_values, self.grid_points = self.create_square_grid()

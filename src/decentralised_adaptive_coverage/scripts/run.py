@@ -1,6 +1,7 @@
 from models import Environment,UAV
 from tqdm import tqdm
 import os
+import rospy
 
 if __name__ == "__main__":
 
@@ -11,6 +12,7 @@ if __name__ == "__main__":
     weed_centers = [[-size/4, -size/4], [size/4, size/4]]
     weed_cov = [[5, 0], [0, 5]]
     iterations = 5
+    sampling_time = 144
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
@@ -18,7 +20,7 @@ if __name__ == "__main__":
     ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'animation2d.gif')
     ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,'animation3d.gif')
 
-    field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov)
+    field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
     field.plot_field()
 
     drones = [UAV.Drone(pos, field, id) for id,pos in enumerate(field.drone_positions)]
@@ -30,6 +32,12 @@ if __name__ == "__main__":
             drone.compute_voronoi(plot=False)
             drone.plan(plot=False)
             # print(f"Drone {i+1} Path Length: {len(drone.lawnmower_path)}")
+
+            if len(drone.lawnmower_path) == 0:
+                drone.voronoi_center_tracker.append(drone.position)
+                drone.measurements = []
+                field.drone_positions[i] = drone.position
+                continue
 
             drone.sense()
             # print(f"Drone {i+1} Measurements: {drone.measurements[:10]}")
