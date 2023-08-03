@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pickle
 import os
+from tools import voronoi
 
 class Field:
     def __init__(self, size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time = 10):
@@ -98,7 +99,7 @@ class Field:
         ax.set_title('Field with Drones and Weed Distribution (3D)')
         plt.show()
 
-    def animate_field_2d(self, filename=None):
+    def animate_field_2d(self, plot_voronoi=False, filename=None):
         fig, ax = plt.subplots()
 
         # Initial plot setup
@@ -108,11 +109,26 @@ class Field:
         drone_positions = np.array(self.drone_position_tracker[0])
         scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], color='red')
 
+        if plot_voronoi:
+            voronoi_calculator = voronoi.VoronoiCalculator(drone_positions[:, :2], 'square', self.size)
+            voronoi_regions = voronoi_calculator.compute_voronoi()
+
+            for poly in voronoi_regions:
+                ax.fill(*zip(*poly.exterior.coords), alpha=0.4)                
+
         def animate(i):
             drone_positions = np.array(self.drone_position_tracker[i])
             ax.clear()
             ax.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
             scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], color='red')
+
+            if plot_voronoi:
+                voronoi_calculator = voronoi.VoronoiCalculator(drone_positions[:, :2], 'square', self.size)
+                voronoi_regions = voronoi_calculator.compute_voronoi()
+
+                for poly in voronoi_regions:
+                    ax.fill(*zip(*poly.exterior.coords), alpha=0.4)                
+
             ax.set_xlim([-self.size/2, self.size/2])
             ax.set_ylim([-self.size/2, self.size/2])
             ax.set_title(f'Field with Drones and Weed Distribution - Iteration {i+1}')
@@ -124,7 +140,7 @@ class Field:
 
         plt.show()
 
-    def animate_field_3d(self, filename=None):
+    def animate_field_3d(self, plot_voronoi= False, filename=None):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
@@ -137,11 +153,30 @@ class Field:
         ax.set_zlabel('Weed density')
         ax.set_title('Field with Drones and Weed Distribution (3D)')
 
+        if plot_voronoi:
+            voronoi_calculator = voronoi.VoronoiCalculator(drone_positions[:, :2], 'square', self.size)
+            voronoi_regions = voronoi_calculator.compute_voronoi()
+
+            for poly in voronoi_regions:
+                region = np.array(poly.exterior.coords)
+                Z = np.full(region.shape[0], drone_positions[:, 2][0]-0.2)
+                ax.plot_trisurf(region[:,0], region[:,1], Z, alpha=0.4)
+
         def animate(i):
             drone_positions = np.array(self.drone_position_tracker[i])
             ax.clear()
             ax.plot_surface(X, Y, self.weed_distribution.reshape(X.shape), cmap='viridis', alpha=0.5)
             scat = ax.scatter(drone_positions[:, 0], drone_positions[:, 1], drone_positions[:, 2], color='red')
+
+            if plot_voronoi:
+                voronoi_calculator = voronoi.VoronoiCalculator(drone_positions[:, :2], 'square', self.size)
+                voronoi_regions = voronoi_calculator.compute_voronoi()
+
+                for poly in voronoi_regions:
+                    region = np.array(poly.exterior.coords)
+                    Z = np.full(region.shape[0], drone_positions[:, 2][0]-0.2)
+                    ax.plot_trisurf(region[:,0], region[:,1], Z, alpha=0.4)
+
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Weed density')

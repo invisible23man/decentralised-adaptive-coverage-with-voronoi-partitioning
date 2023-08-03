@@ -59,5 +59,5 @@ if __name__ == "__main__":
     # Save data
     field.save_data(EXPERIMENT_FILENAME)
 
-    field.animate_field_2d(ANIMATION2D_FILENAME)
-    field.animate_field_3d(ANIMATION3D_FILENAME)
+    # field.animate_field_2d(plot_voronoi=True, filename=ANIMATION2D_FILENAME)
+    field.animate_field_3d(plot_voronoi=True, filename=ANIMATION3D_FILENAME)
