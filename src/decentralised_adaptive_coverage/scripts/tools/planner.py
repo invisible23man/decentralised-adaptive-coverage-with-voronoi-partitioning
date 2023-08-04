@@ -1,4 +1,4 @@
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, Point
@@ -13,7 +13,7 @@ class Planner:
         # For simplicity, we'll just use a grid-based approach
         if isinstance(self.drone.voronoi_region, Polygon):
             self.drone.voronoi_region = [self.drone.voronoi_region]
-        minx, miny, maxx, maxy = cascaded_union(self.drone.voronoi_region[self.drone.id]).bounds
+        minx, miny, maxx, maxy = unary_union(self.drone.voronoi_region[self.drone.id]).bounds
         x = np.arange(minx, maxx, self.drone.grid_resolution)
         y = np.arange(miny, maxy, self.drone.grid_resolution)
         path = []

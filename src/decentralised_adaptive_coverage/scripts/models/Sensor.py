@@ -19,27 +19,40 @@ def sense_field(coordinate, grid_points, weed_distribution, method='nearest'):
     
     return sensed_density
 
-def estimate_field(coordinate, grid_points, weed_distribution, sigma=1.0):
+def estimate_field(path, grid_points, weed_distribution, estimator, mode='Gaussian', sigma=1.0):
     """
     Function to estimate the weed density at a given coordinate in the field.
     Args:
     coordinate : Coordinate at which the weed density needs to be estimated.
     grid_points : The grid points of the field.
     weed_distribution : The corresponding weed distribution at each grid point.
+    estimator : An instance of an estimator object, e.g. GaussianProcessRegressorEstimator.
+    mode : The mode of estimation to be used. Options are 'Gaussian' and 'GPR'.
     sigma : Standard deviation for Gaussian kernel.
 
     Returns:
     estimated_density : The estimated weed density at the given coordinate.
     """
 
-    # Calculate Gaussian kernel
-    distances = cdist(grid_points, np.atleast_2d(coordinate), 'euclidean')
-    kernel_values = np.exp(-distances ** 2 / (2 * sigma ** 2))
+    if mode == 'Gaussian':
+        estimated_distribtion = []
+        for coordinate in path:
+            # Calculate Gaussian kernel
+            distances = cdist(grid_points, np.atleast_2d(coordinate), 'euclidean')
+            kernel_values = np.exp(-distances ** 2 / (2 * sigma ** 2))
 
-    # Use the kernel values to calculate a weighted average of the weed distribution
-    estimated_density = np.average(weed_distribution, weights=kernel_values.flatten())
+            # Use the kernel values to calculate a weighted average of the weed distribution
+            estimated_density_at_coordinate = np.average(weed_distribution, weights=kernel_values.flatten())
+            estimated_distribtion.append(estimated_density_at_coordinate)          
+        estimated_distribution_uncertainty = None  # Gaussian method doesn't provide uncertainty
+    
+    elif mode == 'GPR':
+        estimated_distribtion, estimated_distribution_uncertainty = estimator.predict(np.atleast_2d(path))
+    
+    else:
+        raise ValueError(f"Invalid mode: {mode}. Options are 'Gaussian' and 'GPR'.")
 
-    return estimated_density
+    return estimated_distribtion, estimated_distribution_uncertainty
 
 def systematic_resample(weights):
     N = weights.shape[0]

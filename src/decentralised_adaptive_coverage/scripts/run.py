@@ -4,6 +4,9 @@ from tqdm import tqdm
 import os
 import rospy
 
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+
 if __name__ == "__main__":
 
     # Example usage
@@ -11,21 +14,27 @@ if __name__ == "__main__":
     grid_resolution = 1 
     drone_count = 16
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
-    weed_centers = [[-4, 17], [15, -17]]
+    weed_centers = [[-7, 10], [22, -22]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 5
-    sampling_time = 30
+    iterations = 50
+    sampling_time = 50
+    disable_warnings = False
 
-    filter_config = {
-        "name": "PF",
-        "num_particles":2000,
-        "temperature": 1.0,
-        "cooling": 0.99
+    if disable_warnings:
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+    estimator_config = {
+        # "name": "PF",
+        # "num_particles":2000,
+        # "temperature": 1.0,
+        # "cooling": 0.99,
+        "name": "GPR",
+        "kernel": "C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e3))"        
     }
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
-    EXPERIMENT_FILTERTAG = f's-{sampling_time}-it{iterations}-{utils.generate_experiment_tag(filter_config)}'
+    EXPERIMENT_FILTERTAG = f's-{sampling_time}-it{iterations}-{utils.generate_experiment_tag(estimator_config)}'
     EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
                                        f'{EXPERIMENT_FILTERTAG}-data.pkl')
     ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
@@ -36,7 +45,7 @@ if __name__ == "__main__":
     field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
     field.plot_field()
 
-    drones = [UAV.Drone(id, pos, field, filter_config) for id,pos in enumerate(field.drone_positions)]
+    drones = [UAV.Drone(id, pos, field, estimator_config) for id,pos in enumerate(field.drone_positions)]
 
     for iteration in tqdm(range(iterations)):
         print(f"\nIteration {iteration+1}")

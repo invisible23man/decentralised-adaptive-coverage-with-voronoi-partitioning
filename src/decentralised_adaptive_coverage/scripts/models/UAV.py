@@ -2,7 +2,7 @@ import sys
 sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/')
 
 from models.Environment import Field
-from models.Sensor import sense_field, estimate_field, systematic_resample
+from models import Sensor, Estimators
 from tools import voronoi, planner as planpath
 from tqdm import tqdm
 from scipy.stats import norm
@@ -10,7 +10,7 @@ import numpy as np
 
 
 class Drone:
-    def __init__(self, id, position, field:Field, filter_config):
+    def __init__(self, id, position, field:Field, estimator_config):
         self.id = id
         self.position = position
         self.altitude = 3
@@ -28,20 +28,32 @@ class Drone:
         self.lawnmower_path_tracker = []
         
         self.sampling_time = field.sampling_time
-        self.true_sensor = sense_field
-        self.estimator_sensor = estimate_field
+        self.true_sensor = Sensor.sense_field
+
         self.measurements = []
         self.scaling_enabled = False
-        self.estimation_enabled = False 
-        self.filter_config = filter_config
-        self.estimated_weed_distribution = np.ones_like(field.weed_distribution) / np.prod(field.weed_distribution.shape)
+        self.estimation_enabled = False
 
-        self.num_particles = self.filter_config["num_particles"]
-        self.particles = np.ones((field.weed_distribution.shape[0], self.num_particles)) / np.prod(field.weed_distribution.shape)
-        self.particle_weights = np.ones((field.weed_distribution.shape[0], self.num_particles)) / self.num_particles
-        self.temperature = self.filter_config["temperature"]
-        self.cooling_rate = self.filter_config["cooling"]
-    
+        self.initialize_estimator(estimator_config)
+
+    def initialize_estimator(self, estimator_config):
+        self.estimator_config = estimator_config
+        estimator_name = self.estimator_config.get("name", "None")
+
+        self.estimated_weed_distribution = np.ones_like(self.true_weed_distribution) / np.prod(self.true_weed_distribution.shape)
+
+        if estimator_name == "GPR":
+            self.estimator_sensor = Estimators.GaussianProcessRegressorEstimator(self.estimator_config["kernel"])
+        elif estimator_name == "PF":
+            self.estimator_sensor = Estimators.ParticleFilterEstimator
+            self.num_particles = self.estimator_config["num_particles"]
+            self.particles = np.ones((self.true_weed_distribution.shape[0], self.num_particles)) / np.prod(self.true_weed_distribution.shape)
+            self.particle_weights = np.ones((self.true_weed_distribution.shape[0], self.num_particles)) / self.num_particles
+            self.temperature = self.estimator_config["temperature"]
+            self.cooling_rate = self.estimator_config["cooling"]
+        else:
+            raise ValueError("Invalid estimator name provided. Available options are 'GPR' and 'PF'.")
+
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(self.drone_positions, 'square', self.field_size)
         self.voronoi_region = voronoi_calculator.compute_voronoi()
@@ -62,41 +74,26 @@ class Drone:
             self.lawnmower_sampling_path = self.lawnmower_path
         self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.lawnmower_sampling_path]))
 
-        for point, measurement in zip(self.lawnmower_path, self.measurements):
+        for point, measurement in zip(self.lawnmower_sampling_path, self.measurements):
             grid_x, grid_y = self.get_grid_coordinates(point)
             index_1d = grid_x * int(self.field_size/self.grid_resolution) + grid_y
 
-
-            if self.filter_config["name"]=="PF":
-                # Update particle weights based on the sensed measurement
-                self.particle_weights[index_1d] = norm.pdf(measurement, loc=self.particles[index_1d], scale=1.0)
-                self.particle_weights[index_1d] /= self.particle_weights[index_1d].sum()  # Normalize weights
-                self.particle_weights[index_1d] = systematic_resample(self.particle_weights[index_1d])
-                
-                # Update the estimated weed distribution for the current grid index
-                self.estimated_weed_distribution[index_1d] = np.average(self.particles[index_1d], weights=self.particle_weights[index_1d])
-
-                # Resample particles
-                if np.random.uniform() < self.temperature:
-                    # Random resampling
-                    self.particle_weights[index_1d] = np.ones_like(self.particle_weights[index_1d]) / self.num_particles
-                else:
-                    # Systematic resampling
-                    self.particle_weights[index_1d] = systematic_resample(self.particle_weights[index_1d])
-
-                # Randomly perturb particles
-                self.particles[index_1d] += np.random.normal(scale=self.temperature, size=self.num_particles)
-
+            if self.estimator_config["name"] == "PF":
+                self.estimated_weed_distribution[index_1d], self.particles[index_1d], self.particle_weights[index_1d], self.temperature = \
+                    Estimators.ParticleFilterEstimator.update(measurement, self.particles[index_1d], self.particle_weights[index_1d], self.num_particles, self.temperature, self.cooling_rate)
             else:
                 self.estimated_weed_distribution[index_1d] = measurement
 
-        # Decrease temperature
-        self.temperature *= self.cooling_rate                    
+        if self.estimator_config["name"] == "GPR":
+            self.estimator_sensor.train(X= self.lawnmower_sampling_path, y= self.measurements)
 
     def estimate(self):
         if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
             self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
-            self.estimated_measurements = np.squeeze(np.array([self.estimator_sensor(point, self.grid_points, self.estimated_weed_distribution) for point in self.remaining_path]))    
+
+            self.estimated_measurements, self.estimate_uncertainty = \
+                    Sensor.estimate_field(self.remaining_path, self.grid_points, self.estimated_weed_distribution, self.estimator_sensor, mode=self.estimator_config["name"])
+
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
             print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
