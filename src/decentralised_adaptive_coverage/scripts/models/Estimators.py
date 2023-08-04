@@ -43,3 +43,27 @@ class ParticleFilterEstimator:
         temperature *= cooling_rate
 
         return estimated_weed_density, particles, particle_weights
+
+def handle_estimate_uncertainities(drone, scaling_factor):
+
+        if drone.estimator_config["weigh_uncertainity"]=="individually":
+            epsilon = 1e-6  # very small uncertainty for true measurements
+            uncertainties = np.append(drone.estimate_uncertainities, epsilon*np.ones(drone.lawnmower_sampling_path.shape[0]))
+            drone.estimate_uncertainty_tracker.append(uncertainties)
+
+            weights = 1 / (uncertainties ** 2)
+            mv = np.sum(drone.measurements * weights) * scaling_factor
+            cx = np.sum(np.squeeze(drone.lawnmower_path[:, 0]) * drone.measurements * weights) / mv
+            cy = np.sum(np.squeeze(drone.lawnmower_path[:, 1]) * drone.measurements * weights) / mv
+            return mv, cx, cy
+
+        if drone.estimator_config["weigh_uncertainity"]=="partitionwise":
+            epsilon = 1e-6  # very small uncertainty for true measurements
+            uncertainties = np.append(drone.estimate_uncertainities, epsilon*np.ones(drone.lawnmower_sampling_path.shape[0]))
+            drone.estimate_uncertainty_tracker.append(uncertainties)
+
+            mv = np.sum(drone.measurements)*scaling_factor
+            cx = np.sum(np.squeeze(drone.lawnmower_path[:, 0]) * drone.measurements) / mv *(1-drone.estimate_uncertainities.mean())
+            cy = np.sum(np.squeeze(drone.lawnmower_path[:, 1]) * drone.measurements) / mv *(1-drone.estimate_uncertainities.mean())
+            return mv, cx, cy
+        

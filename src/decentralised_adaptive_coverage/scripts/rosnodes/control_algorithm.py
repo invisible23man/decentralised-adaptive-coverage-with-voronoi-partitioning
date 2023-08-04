@@ -103,22 +103,8 @@ def main():
 
         drone.estimate()
 
+        # rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.update_voronoi()
-
-        # Wait until all drones have published their state and covariance
-        if config.getboolean('FILTER_SETUP','apply_consensus'):
-            drone.publish_state_and_covariance()
-            counter = 0 
-            while len(drone.other_states) < n_drones- 1 or len(drone.other_covariances) < n_drones- 1:
-                rospy.sleep(0.1)  # Sleep for a short duration before checking again
-                if counter % 15 == 0:
-                    rospy.loginfo(f"Waiting for other drones to send x,P:drone{drone.drone_id}:: \
-                                    x,P:{len(drone.other_states)},{len(drone.other_covariances)}")
-                counter +=1
-                time.sleep(1)  # Sleep for a short time to avoid busy waiting
-
-        rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
-        drone.calculate_new_voronoi_center()
 
         # Wait until all drones have updated their centers
         counter = 0 
@@ -127,17 +113,7 @@ def main():
                 rospy.loginfo(f"Waiting for other drones to update their centers:drone{drone.drone_id}, o_centers:{len(drone.other_centers)},iter:{i}")
             counter +=1
             time.sleep(1)  # Sleep for a short time to avoid busy waiting
-
-        rospy.loginfo(f"Calculating Voronoi Partitions:drone{drone.drone_id}, iter:{i}")
-        drone.calculate_voronoi_partitions()
-        rospy.loginfo(f"Voronoi Centres for drone{drone.drone_id}: {drone.voronoi_center_tracker}")
         
-    # Save the run info
-    with open(os.path.join(config.get('RESULTS', 'save_directory'), f"{drone.drone_id}_centers.pkl"), "wb") as f:
-        pickle.dump(drone.voronoi_center_tracker, f)
-    with open(os.path.join(config.get('RESULTS', 'save_directory'), f"{drone.drone_id}_all_centers.pkl"), "wb") as f:
-        pickle.dump(drone.all_voronoi_center_tracker, f)
-
     if drone.enable_physics_simulation:
         drone.drone.land()
     # time.sleep(5)

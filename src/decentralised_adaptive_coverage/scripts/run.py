@@ -10,14 +10,14 @@ from sklearn.exceptions import ConvergenceWarning
 if __name__ == "__main__":
 
     # Example usage
-    size = 50
+    size = 25
     grid_resolution = 1 
-    drone_count = 16
+    drone_count = 50
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 50
-    sampling_time = 50
+    iterations = 20
+    sampling_time = 30
     disable_warnings = True
 
     if disable_warnings:
@@ -31,7 +31,8 @@ if __name__ == "__main__":
 
     estimator_config = {
         # "weigh_uncertainity":"individually",
-        "weigh_uncertainity":"partitionwise",
+        # "weigh_uncertainity":"partitionwise",
+        "weigh_uncertainity":None,
         
         # "name": "PF",
         # "num_particles":2000,
