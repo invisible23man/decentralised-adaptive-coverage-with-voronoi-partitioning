@@ -41,6 +41,20 @@ def estimate_field(coordinate, grid_points, weed_distribution, sigma=1.0):
 
     return estimated_density
 
+def systematic_resample(weights):
+    N = weights.shape[0]
+    positions = (np.arange(N) + np.random.random()) / N
+    indexes = np.zeros(N, 'i')
+    cumulative_sum = np.cumsum(weights)
+    i, j = 0, 0
+    while i < N:
+        if positions[i] < cumulative_sum[j]:
+            indexes[i] = j
+            i += 1
+        else:
+            j += 1
+    return indexes
+
 if __name__ == '__main__':
 
     import sys

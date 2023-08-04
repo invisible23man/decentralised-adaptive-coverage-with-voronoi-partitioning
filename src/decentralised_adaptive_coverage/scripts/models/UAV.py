@@ -2,14 +2,15 @@ import sys
 sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/')
 
 from models.Environment import Field
-from models.Sensor import sense_field, estimate_field
+from models.Sensor import sense_field, estimate_field, systematic_resample
 from tools import voronoi, planner as planpath
 from tqdm import tqdm
+from scipy.stats import norm
 import numpy as np
 
 
 class Drone:
-    def __init__(self, position, field:Field, id):
+    def __init__(self, id, position, field:Field, filter_config):
         self.id = id
         self.position = position
         self.altitude = 3
@@ -32,8 +33,15 @@ class Drone:
         self.measurements = []
         self.scaling_enabled = False
         self.estimation_enabled = False 
+        self.filter_config = filter_config
         self.estimated_weed_distribution = np.ones_like(field.weed_distribution) / np.prod(field.weed_distribution.shape)
-        
+
+        self.num_particles = self.filter_config["num_particles"]
+        self.particles = np.ones((field.weed_distribution.shape[0], self.num_particles)) / np.prod(field.weed_distribution.shape)
+        self.particle_weights = np.ones((field.weed_distribution.shape[0], self.num_particles)) / self.num_particles
+        self.temperature = self.filter_config["temperature"]
+        self.cooling_rate = self.filter_config["cooling"]
+    
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(self.drone_positions, 'square', self.field_size)
         self.voronoi_region = voronoi_calculator.compute_voronoi()
@@ -57,7 +65,33 @@ class Drone:
         for point, measurement in zip(self.lawnmower_path, self.measurements):
             grid_x, grid_y = self.get_grid_coordinates(point)
             index_1d = grid_x * int(self.field_size/self.grid_resolution) + grid_y
-            self.estimated_weed_distribution[index_1d] = measurement   
+
+
+            if self.filter_config["name"]=="PF":
+                # Update particle weights based on the sensed measurement
+                self.particle_weights[index_1d] = norm.pdf(measurement, loc=self.particles[index_1d], scale=1.0)
+                self.particle_weights[index_1d] /= self.particle_weights[index_1d].sum()  # Normalize weights
+                self.particle_weights[index_1d] = systematic_resample(self.particle_weights[index_1d])
+                
+                # Update the estimated weed distribution for the current grid index
+                self.estimated_weed_distribution[index_1d] = np.average(self.particles[index_1d], weights=self.particle_weights[index_1d])
+
+                # Resample particles
+                if np.random.uniform() < self.temperature:
+                    # Random resampling
+                    self.particle_weights[index_1d] = np.ones_like(self.particle_weights[index_1d]) / self.num_particles
+                else:
+                    # Systematic resampling
+                    self.particle_weights[index_1d] = systematic_resample(self.particle_weights[index_1d])
+
+                # Randomly perturb particles
+                self.particles[index_1d] += np.random.normal(scale=self.temperature, size=self.num_particles)
+
+            else:
+                self.estimated_weed_distribution[index_1d] = measurement
+
+        # Decrease temperature
+        self.temperature *= self.cooling_rate                    
 
     def estimate(self):
         if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
@@ -92,7 +126,7 @@ if __name__ == "__main__":
     field = Field(size, grid_resolution, drone_count, weed_centers, weed_cov)
     field.plot_field()
 
-    drones = [Drone(pos, field, id) for id,pos in enumerate(field.drone_positions)]
+    drones = [Drone(pos, id, field) for id,pos in enumerate(field.drone_positions)]
 
     for i, drone in enumerate(drones[:4]):
         drone.compute_voronoi(plot=True)

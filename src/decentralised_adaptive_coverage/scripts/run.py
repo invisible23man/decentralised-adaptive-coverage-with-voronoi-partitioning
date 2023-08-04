@@ -1,4 +1,5 @@
 from models import Environment,UAV
+from tools import utils
 from tqdm import tqdm
 import os
 import rospy
@@ -10,21 +11,32 @@ if __name__ == "__main__":
     grid_resolution = 1 
     drone_count = 16
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
-    weed_centers = [[-20, 0], [15, -15]]
+    weed_centers = [[-4, 17], [15, -17]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 30
+    iterations = 5
     sampling_time = 30
+
+    filter_config = {
+        "name": "PF",
+        "num_particles":2000,
+        "temperature": 1.0,
+        "cooling": 0.99
+    }
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
     EXPERIMENT_TIMESTAMP = ''
-    EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-data.pkl')
-    ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-animation2d.gif')
-    ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,f's-{sampling_time}-it{iterations}-animation3d.gif')
+    EXPERIMENT_FILTERTAG = f's-{sampling_time}-it{iterations}-{utils.generate_experiment_tag(filter_config)}'
+    EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
+                                       f'{EXPERIMENT_FILTERTAG}-data.pkl')
+    ANIMATION2D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
+                                        f'{EXPERIMENT_FILTERTAG}-animation2d.gif')
+    ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
+                                        f'{EXPERIMENT_FILTERTAG}-animation3d.gif')
 
     field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
     field.plot_field()
 
-    drones = [UAV.Drone(pos, field, id) for id,pos in enumerate(field.drone_positions)]
+    drones = [UAV.Drone(id, pos, field, filter_config) for id,pos in enumerate(field.drone_positions)]
 
     for iteration in tqdm(range(iterations)):
         print(f"\nIteration {iteration+1}")
