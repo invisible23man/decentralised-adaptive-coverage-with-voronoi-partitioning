@@ -44,15 +44,15 @@ def estimate_field(path, grid_points, weed_distribution, estimator, mode='Gaussi
             # Use the kernel values to calculate a weighted average of the weed distribution
             estimated_density_at_coordinate = np.average(weed_distribution, weights=kernel_values.flatten())
             estimated_distribtion.append(estimated_density_at_coordinate)          
-        estimated_distribution_uncertainty = None  # Gaussian method doesn't provide uncertainty
+        estimated_distribution_uncertainties = None  # Gaussian method doesn't provide uncertainty
     
     elif mode == 'GPR':
-        estimated_distribtion, estimated_distribution_uncertainty = estimator.predict(np.atleast_2d(path))
+        estimated_distribtion, estimated_distribution_uncertainties = estimator.predict(np.atleast_2d(path))
     
     else:
         raise ValueError(f"Invalid mode: {mode}. Options are 'Gaussian' and 'GPR'.")
 
-    return estimated_distribtion, estimated_distribution_uncertainty
+    return estimated_distribtion, estimated_distribution_uncertainties
 
 def systematic_resample(weights):
     N = weights.shape[0]

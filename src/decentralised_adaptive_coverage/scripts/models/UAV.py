@@ -42,6 +42,7 @@ class Drone:
         estimator_name = self.estimator_config.get("name", "None")
 
         self.estimated_weed_distribution = np.ones_like(self.true_weed_distribution) / np.prod(self.true_weed_distribution.shape)
+        self.estimate_uncertainty_tracker = [np.ones_like(self.estimated_weed_distribution)]
 
         if estimator_name == "GPR":
             self.estimator_sensor = Estimators.GaussianProcessRegressorEstimator(self.estimator_config["kernel"])
@@ -69,12 +70,17 @@ class Drone:
         self.lawnmower_path_tracker.append(self.lawnmower_path)
 
     def sense(self):
-        if self.sampling_time: # Cut Short Sampling Path
-            self.lawnmower_sampling_path = self.lawnmower_path[:min(self.sampling_time, len(self.lawnmower_path))]
-        else:
+        if self.sampling_time < len(self.lawnmower_path): # Cut Short Sampling Path
+            self.lawnmower_sampling_path = self.lawnmower_path[:self.sampling_time]
+            self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
+        else: # Sample Full, No Estimation
             self.lawnmower_sampling_path = self.lawnmower_path
-        self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) for point in self.lawnmower_sampling_path]))
+            self.remaining_path = []
 
+        self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution) \
+                                        for point in self.lawnmower_sampling_path]))
+
+        # Estimator Training (State Update)
         for point, measurement in zip(self.lawnmower_sampling_path, self.measurements):
             grid_x, grid_y = self.get_grid_coordinates(point)
             index_1d = grid_x * int(self.field_size/self.grid_resolution) + grid_y
@@ -89,15 +95,16 @@ class Drone:
             self.estimator_sensor.train(X= self.lawnmower_sampling_path, y= self.measurements)
 
     def estimate(self):
-        if self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled: # Enable Estimation
-            self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
+        if (self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled) and len(self.remaining_path)>0: # Enable Estimation
 
-            self.estimated_measurements, self.estimate_uncertainty = \
+            self.estimated_measurements, self.estimate_uncertainities = \
                     Sensor.estimate_field(self.remaining_path, self.grid_points, self.estimated_weed_distribution, self.estimator_sensor, mode=self.estimator_config["name"])
 
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
             print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
+        else:
+            self.estimated_measurements, self.estimate_uncertainities = [],[]
 
     def update_voronoi(self):
         if self.scaling_enabled:
@@ -105,9 +112,33 @@ class Drone:
         else:
             scaling_factor = 1
 
-        mv = np.sum(self.measurements)*scaling_factor
-        cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements) / mv
-        cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements) / mv
+
+        if self.estimator_config["weigh_uncertainity"]=="individually":
+            epsilon = 1e-6  # very small uncertainty for true measurements
+            uncertainties = np.append(self.estimate_uncertainities, epsilon*np.ones(self.lawnmower_sampling_path.shape[0]))
+            self.estimate_uncertainty_tracker.append(uncertainties)
+
+            weights = 1 / (uncertainties ** 2)
+            mv = np.sum(self.measurements * weights) * scaling_factor
+            cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements * weights) / mv
+            cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements * weights) / mv
+
+        elif self.estimator_config["weigh_uncertainity"]=="partitionwise":
+            epsilon = 1e-6  # very small uncertainty for true measurements
+            uncertainties = np.append(self.estimate_uncertainities, epsilon*np.ones(self.lawnmower_sampling_path.shape[0]))
+            self.estimate_uncertainty_tracker.append(uncertainties)
+
+            mv = np.sum(self.measurements)*scaling_factor
+            cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements) / mv *(1-self.estimate_uncertainities.mean())
+            cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements) / mv *(1-self.estimate_uncertainities.mean())
+        
+        else:
+            mv = np.sum(self.measurements)*scaling_factor
+            cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements) / mv
+            cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements) / mv
+        
+            self.estimate_uncertainty_tracker.append(np.ones_like(self.estimated_weed_distribution))
+
         new_center = [cx+self.grid_resolution/1000, cy+self.grid_resolution/1000, self.altitude]
         self.voronoi_center_tracker.append(new_center)
         self.position = np.array(new_center)

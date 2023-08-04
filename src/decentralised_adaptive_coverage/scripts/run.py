@@ -25,14 +25,19 @@ if __name__ == "__main__":
 
     planner_config = {
         # "reordermode": "SpiralOutward"
+        # "reordermode":"NearestNeighbor",
         "reordermode": None
     }
 
     estimator_config = {
+        # "weigh_uncertainity":"individually",
+        "weigh_uncertainity":"partitionwise",
+        
         # "name": "PF",
         # "num_particles":2000,
         # "temperature": 1.0,
         # "cooling": 0.99,
+        
         "name": "GPR",
         "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
     }
