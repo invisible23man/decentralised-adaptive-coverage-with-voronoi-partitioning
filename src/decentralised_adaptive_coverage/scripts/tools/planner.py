@@ -2,6 +2,7 @@ from shapely.ops import unary_union
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, Point
+from scipy.spatial import distance_matrix
 
 
 class Planner:
@@ -28,6 +29,7 @@ class Planner:
                     if poly.contains(point):
                         path.append((xi, yi))
         self.drone.lawnmower_path = np.array(path)
+        # self.drone.lawnmower_path = self.reorder_path(self.drone.position, self.drone.lawnmower_path)
 
     def plot_lawnmower_path(self):
         # Plot the lawnmower path
@@ -58,3 +60,39 @@ class Planner:
 
         ax.set_aspect('equal')
         plt.show()
+
+
+    def reorder_path(self, start_point, path):
+        """
+        Function to reorder a path to minimize total distance, starting from a specific point.
+        Uses a simple nearest neighbor approach.
+        
+        Args:
+        start_point : The starting point for the path.
+        path : The original path as an N x 2 numpy array.
+
+        Returns:
+        reordered_path : The reordered path as an N x 2 numpy array.
+        """
+
+        # Create a copy of the path
+        remaining_points = path.copy()
+
+        # Initialize the reordered path with the start point
+        reordered_path = np.array([[start_point[0],start_point[1]]])
+
+        # While there are still points to visit
+        while remaining_points.size > 0:
+            # Compute the distance from the current point to all remaining points
+            distances = distance_matrix([reordered_path[-1]], remaining_points)
+
+            # Find the closest point
+            closest_point_index = np.argmin(distances)
+
+            # Add the closest point to the reordered path
+            reordered_path = np.append(reordered_path, [remaining_points[closest_point_index]], axis=0)
+
+            # Remove the closest point from the list of remaining points
+            remaining_points = np.delete(remaining_points, closest_point_index, axis=0)
+
+        return reordered_path

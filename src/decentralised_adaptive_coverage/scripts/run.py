@@ -14,11 +14,11 @@ if __name__ == "__main__":
     grid_resolution = 1 
     drone_count = 16
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
-    weed_centers = [[-7, 10], [22, -22]]
+    weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
     iterations = 50
     sampling_time = 50
-    disable_warnings = False
+    disable_warnings = True
 
     if disable_warnings:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         # "temperature": 1.0,
         # "cooling": 0.99,
         "name": "GPR",
-        "kernel": "C(1.0, (1e-3, 1e3)) * RBF(10, (1e-2, 1e3))"        
+        "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
     }
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
