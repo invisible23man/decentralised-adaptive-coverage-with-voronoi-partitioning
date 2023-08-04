@@ -10,9 +10,9 @@ from sklearn.exceptions import ConvergenceWarning
 if __name__ == "__main__":
 
     # Example usage
-    size = 25
+    size = 50
     grid_resolution = 1 
-    drone_count = 50
+    drone_count = 16
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
@@ -67,9 +67,9 @@ if __name__ == "__main__":
             # print(f"Drone {i+1} Path Length: {len(drone.lawnmower_path)}")
 
             if len(drone.lawnmower_path) == 0:
-                drone.voronoi_center_tracker.append(drone.position)
+                drone.voronoi_center_tracker.append(drone.voronoi_center)
                 drone.measurements = []
-                field.drone_positions[i] = drone.position
+                field.drone_positions[i] = drone.voronoi_center
                 continue   
 
             drone.sense()
@@ -81,7 +81,7 @@ if __name__ == "__main__":
             # print(f"Drone {i+1} Centers: {drone.voronoi_center_tracker}")
 
             # Drone Posiiton update to be moved ot outer loop for asynchronous update later
-            field.drone_positions[i] = drone.position
+            field.drone_positions[i] = drone.voronoi_center
 
         # Update the drone positions and path measurements in the field
         field.update_drone_positions([drone.position for drone in drones])

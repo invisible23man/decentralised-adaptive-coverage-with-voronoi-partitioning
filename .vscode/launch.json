@@ -17,6 +17,12 @@
             "target": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/launch/voronoi.launch"
         },
         {
+            "name": "ROS: Launch Drone Node",
+            "type": "ros",
+            "request": "launch",
+            "target": "/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/launch/control_node.launch"
+        },
+        {
             "name": "ROS: Attach",
             "type": "ros",
             "request": "attach"

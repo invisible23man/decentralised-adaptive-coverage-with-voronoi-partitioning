@@ -1,5 +1,5 @@
 import sys
-sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/scripts/')
+import time
 
 from models.Environment import Field
 from models import Sensor, Estimators
@@ -22,6 +22,7 @@ class DroneRosNode:
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
         self.drone_count = field.drone_count
+        self.drone_positions = field.drone_positions
 
         # Set up ROS publishers, subscribers and callbacks
         self.setup_publishers()
@@ -37,11 +38,13 @@ class DroneRosNode:
     def setup_publishers(self):
         # Setup Publishers: voronoi center, measurements, variances
         self.pub_center = rospy.Publisher(f'/drone{self.drone_id}/center', rosMsgPoint, queue_size=10)
+        self.voronoi_center = self.drone_positions[self.drone_id]
+        self.pub_center.publish(rosMsgPoint(self.voronoi_center[0], self.voronoi_center[1], self.voronoi_center[2]))
+
+        time.sleep(3)
 
     def setup_subscribers(self):
         # Setup Subscribers: all voronoi centers, measurements, variances
-
-        self.voronoi_centers = String()
         
         # Initialize subscribers for the other drones
         for i in range(self.drone_count):
@@ -52,17 +55,16 @@ class DroneRosNode:
                     self.callback_handler.center_callback, 
                     callback_args=i)
 
+
     def publish_payload(self, voronoi_center):
         # Setup Publishers: voronoi centers, measurements, variances
         center_msg = rosMsgPoint(voronoi_center[0], voronoi_center[1], voronoi_center[2])
         self.pub_center.publish(center_msg)
 
 class Drone(DroneRosNode):
-    def __init__(self, position, field:Field, planner_config, estimator_config):
-        super().init(field)
-        self.position = position
+    def __init__(self, field:Field, planner_config, estimator_config):
+        super().__init__(field)
         self.altitude = 3
-        self.drone_positions = field.drone_positions
 
         self.field_size = field.size
         self.grid_resolution = field.grid_resolution
@@ -71,7 +73,7 @@ class Drone(DroneRosNode):
         self.true_weed_distribution = field.weed_distribution
 
         self.voronoi_region = None
-        self.voronoi_center_tracker = [position]    
+        self.voronoi_center_tracker = [self.voronoi_center]    
         self.lawnmower_path = None
         self.lawnmower_path_tracker = []
         self.planner_config = planner_config
@@ -150,7 +152,7 @@ class Drone(DroneRosNode):
 
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
-            print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
+            print(f"Drone {self.drone_id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
         else:
             self.estimated_measurements, self.estimate_uncertainities = [],[]
 

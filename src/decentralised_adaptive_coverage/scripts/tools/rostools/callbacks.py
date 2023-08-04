@@ -9,7 +9,7 @@ class CallbackHandler:
         self.drone = drone
 
     def center_callback(self, msg, drone_id):
-        self.drone.other_centers[drone_id] = np.array([msg.x, msg.y])
+        self.drone.drone_positions[drone_id] = np.array([msg.x, msg.y, msg.z])
 
     def callback_voronoi_centers(self, data):
         self.drone.voronoi_centers = msg_handler.decode_data(data)

@@ -11,8 +11,8 @@ import numpy as np
 
 class Drone:
     def __init__(self, id, position, field:Field, planner_config, estimator_config):
-        self.id = id
-        self.position = position
+        self.drone_id = id
+        self.voronoi_center = position
         self.altitude = 3
         self.drone_positions = field.drone_positions
 
@@ -102,7 +102,7 @@ class Drone:
 
             self.measurements = np.concatenate((self.measurements, self.estimated_measurements), axis=0)
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
-            print(f"Drone {self.id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
+            print(f"Drone {self.drone_id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
         else:
             self.estimated_measurements, self.estimate_uncertainities = [],[]
 

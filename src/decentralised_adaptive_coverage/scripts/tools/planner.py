@@ -14,7 +14,7 @@ class Planner:
         # For simplicity, we'll just use a grid-based approach
         if isinstance(self.drone.voronoi_region, Polygon):
             self.drone.voronoi_region = [self.drone.voronoi_region]
-        minx, miny, maxx, maxy = self.drone.voronoi_region[self.drone.id].bounds
+        minx, miny, maxx, maxy = self.drone.voronoi_region[self.drone.drone_id].bounds
         x = np.arange(minx, maxx, self.drone.grid_resolution)
         y = np.arange(miny, maxy, self.drone.grid_resolution)
         path = []
@@ -121,8 +121,8 @@ class Planner:
         ax.plot(path[:, 0], path[:, 1], 'r')
 
         # Draw drone positions
-        ax.plot(self.drone.position[0], self.drone.position[1], 'ko')
-        ax.text(self.drone.position[0], self.drone.position[1], f'Drone {self.drone.id}', fontsize=12)
+        ax.plot(self.drone.voronoi_center[0], self.drone.voronoi_center[1], 'ko')
+        ax.text(self.drone.voronoi_center[0], self.drone.voronoi_center[1], f'Drone {self.drone.drone_id}', fontsize=12)
 
         # Draw true weed distributions
         plt.scatter(self.drone.grid_points[:, 0], self.drone.grid_points[:, 1], c=self.drone.true_weed_distribution, cmap='YlGn', s=5)
