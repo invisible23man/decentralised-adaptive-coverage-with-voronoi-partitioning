@@ -10,7 +10,7 @@ import numpy as np
 
 
 class Drone:
-    def __init__(self, id, position, field:Field, estimator_config):
+    def __init__(self, id, position, field:Field, planner_config, estimator_config):
         self.id = id
         self.position = position
         self.altitude = 3
@@ -26,6 +26,7 @@ class Drone:
         self.voronoi_center_tracker = [position]    
         self.lawnmower_path = None
         self.lawnmower_path_tracker = []
+        self.planner_config = planner_config
         
         self.sampling_time = field.sampling_time
         self.true_sensor = Sensor.sense_field

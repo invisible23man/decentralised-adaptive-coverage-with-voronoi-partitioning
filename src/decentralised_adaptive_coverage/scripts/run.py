@@ -23,6 +23,11 @@ if __name__ == "__main__":
     if disable_warnings:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
+    planner_config = {
+        # "reordermode": "SpiralOutward"
+        "reordermode": None
+    }
+
     estimator_config = {
         # "name": "PF",
         # "num_particles":2000,
@@ -45,7 +50,7 @@ if __name__ == "__main__":
     field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
     field.plot_field()
 
-    drones = [UAV.Drone(id, pos, field, estimator_config) for id,pos in enumerate(field.drone_positions)]
+    drones = [UAV.Drone(id, pos, field, planner_config, estimator_config) for id,pos in enumerate(field.drone_positions)]
 
     for iteration in tqdm(range(iterations)):
         print(f"\nIteration {iteration+1}")
