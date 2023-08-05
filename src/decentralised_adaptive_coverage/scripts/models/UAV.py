@@ -84,7 +84,7 @@ class Drone:
             self.remaining_path = []
 
         self.measurements = np.squeeze(
-            np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution)
+            np.array([self.true_sensor(point[:2], self.grid_points, self.true_weed_distribution)
                 for point in self.lawnmower_sampling_path])
             )
 
@@ -139,31 +139,9 @@ class Drone:
         else:
             scaling_factor = 1
 
-        if self.estimator_config["weigh_uncertainity"] == "individually":
-            epsilon = 1e-6  # very small uncertainty for true measurements
-            uncertainties = np.append(
-                self.estimate_uncertainities, epsilon*np.ones(self.lawnmower_sampling_path.shape[0]))
-            self.estimate_uncertainty_tracker.append(uncertainties)
-
-            weights = 1 / (uncertainties ** 2)
-            mv = np.sum(self.measurements * weights) * scaling_factor
-            cx = np.sum(np.squeeze(
-                self.lawnmower_path[:, 0]) * self.measurements * weights) / mv
-            cy = np.sum(np.squeeze(
-                self.lawnmower_path[:, 1]) * self.measurements * weights) / mv
-
-        elif self.estimator_config["weigh_uncertainity"] == "partitionwise":
-            epsilon = 1e-6  # very small uncertainty for true measurements
-            uncertainties = np.append(
-                self.estimate_uncertainities, epsilon*np.ones(self.lawnmower_sampling_path.shape[0]))
-            self.estimate_uncertainty_tracker.append(uncertainties)
-
-            mv = np.sum(self.measurements)*scaling_factor
-            cx = np.sum(np.squeeze(self.lawnmower_path[:, 0]) * self.measurements) / mv * (
-                1-self.estimate_uncertainities.mean())
-            cy = np.sum(np.squeeze(self.lawnmower_path[:, 1]) * self.measurements) / mv * (
-                1-self.estimate_uncertainities.mean())
-
+        if self.estimator_config["weigh_uncertainity"]:
+            mv, cx, cy = Estimators.handle_estimate_uncertainities(
+                self, scaling_factor)
         else:
             mv = np.sum(self.measurements)*scaling_factor
             cx = np.sum(np.squeeze(

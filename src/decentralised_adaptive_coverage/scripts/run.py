@@ -26,23 +26,25 @@ if __name__ == "__main__":
 
     planner_config = {
         # "reordermode": "SpiralOutward", # Doesen't Work. Need more proper TSP solver, planning
+        # "reordermode": "SpiralOutSimple",
         # "reordermode":"NearestNeighbor",
+        # "reordermode": "SpiralOutA*",
         "reordermode": None,
         "formation_pattern": formation_pattern
     }
 
     estimator_config = {
         # "weigh_uncertainity":"individually",
-        # "weigh_uncertainity":"partitionwise",
-        "weigh_uncertainity":None,
+        "weigh_uncertainity":"partitionwise",
+        # "weigh_uncertainity":None,
         
-        "name": "Particle Filter",
-        "num_particles":2000,
-        "temperature": 1.0,
-        "cooling": 0.99,
+        # "name": "Particle Filter",
+        # "num_particles":2000,
+        # "temperature": 1.0,
+        # "cooling": 0.99,
         
-        # "name": "GPR",
-        # "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
+        "name": "GPR",
+        "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
     }
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'

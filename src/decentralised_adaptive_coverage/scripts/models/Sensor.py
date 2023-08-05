@@ -53,7 +53,7 @@ def estimate_field(drone, path, grid_points, weed_distribution, estimator, mode=
         estimated_distribution, estimated_distribution_uncertainties = [], []
         for coordinate in path:
             grid_x, grid_y = drone.get_grid_coordinates(coordinate)
-            index_1d = grid_x * int(drone.field_size/grid_resolution) + grid_y
+            index_1d = grid_x * int(drone.field_size/drone.grid_resolution) + grid_y
 
             # Compute the weighted average (i.e., estimate) for the current grid index
             estimated_weed_density = np.average(estimator.particles[index_1d], weights=estimator.particle_weights[index_1d])
@@ -62,6 +62,7 @@ def estimate_field(drone, path, grid_points, weed_distribution, estimator, mode=
             # Compute the uncertainty for the current grid index
             uncertainty = np.sqrt(np.average((estimator.particles[index_1d] - estimated_weed_density)**2, weights=estimator.particle_weights[index_1d]))
             estimated_distribution_uncertainties.append(uncertainty)
+        estimated_distribution_uncertainties = np.array(estimated_distribution_uncertainties)
         
     else:
         raise ValueError(f"Invalid mode: {mode}. Options are 'Gaussian', 'GPR', and 'Particle Filter'.")

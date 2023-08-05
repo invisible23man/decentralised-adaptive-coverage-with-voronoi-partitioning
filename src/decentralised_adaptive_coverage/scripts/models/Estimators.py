@@ -29,7 +29,13 @@ class ParticleFilterEstimator:
     def update(self, measurement, index_1d):
         # Update particle weights based on the sensed measurement
         self.particle_weights[index_1d] = norm.pdf(measurement, loc=self.particles[index_1d], scale=1.0)
-        self.particle_weights[index_1d] /= self.particle_weights[index_1d].sum()  # Normalize weights
+
+        # Check if all weights are zero
+        if np.all(self.particle_weights[index_1d] == 0):
+            self.particle_weights[index_1d] = np.full_like(self.particle_weights[index_1d], 1e-10)
+        else:
+            self.particle_weights[index_1d] /= self.particle_weights[index_1d].sum()  # Normalize weights
+
         self.particle_weights[index_1d] = Sensor.systematic_resample(self.particle_weights[index_1d])
 
         # Update the estimated weed density for the current grid index
