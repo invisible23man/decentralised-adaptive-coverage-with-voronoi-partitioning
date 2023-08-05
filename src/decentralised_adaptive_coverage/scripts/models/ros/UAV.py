@@ -23,7 +23,7 @@ class DroneRosNode:
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
         self.drone_count = field.drone_count
-        self.drone_positions = field.drone_positions
+        self.drone_positions = field.drone_positions # Initial Values from config
 
         # Set up ROS services, publishers, subscribers and callbacks
         self.setup_services()
@@ -46,7 +46,7 @@ class DroneRosNode:
     def setup_publishers(self):
         # Setup Publishers: voronoi center, measurements, variances
         self.pub_center = rospy.Publisher(
-            f'/drone{self.drone_id}/center', rosMsgPoint, queue_size=10)
+            f'center', rosMsgPoint, queue_size=10, latch=True)
         self.voronoi_center = self.drone_positions[self.drone_id]
         self.pub_center.publish(rosMsgPoint(
             self.voronoi_center[0], self.voronoi_center[1], self.voronoi_center[2]))
@@ -58,9 +58,9 @@ class DroneRosNode:
 
         # Initialize subscribers for the other drones
         for i in range(self.drone_count):
-            if i != self.drone_id:  # Don't subscribe to our own topic
+            # if i != self.drone_id:  # Don't subscribe to our own topic
                 rospy.Subscriber(
-                    f'/drone{i}/center',
+                    f'/drone{i+1}/center',
                     rosMsgPoint,
                     self.callback_handler.center_callback,
                     callback_args=i)

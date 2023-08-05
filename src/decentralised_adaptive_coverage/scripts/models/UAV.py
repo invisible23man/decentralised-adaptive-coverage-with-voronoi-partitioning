@@ -104,7 +104,7 @@ class Drone:
             self.lawnmower_path = np.concatenate((self.lawnmower_sampling_path, self.remaining_path), axis=0)
             print(f"Drone {self.drone_id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
         else:
-            self.estimated_measurements, self.estimate_uncertainities = [],[]
+            self.estimated_measurements, self.estimate_uncertainities = np.empty_like(self.measurements), np.empty_like(self.measurements) 
 
     def update_voronoi(self):
         if self.scaling_enabled:
@@ -141,7 +141,7 @@ class Drone:
 
         new_center = [cx+self.grid_resolution/1000, cy+self.grid_resolution/1000, self.altitude]
         self.voronoi_center_tracker.append(new_center)
-        self.position = np.array(new_center)
+        self.voronoi_center = np.array(new_center)
 
 if __name__ == "__main__":
 

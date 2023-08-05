@@ -25,9 +25,9 @@ class Planner:
                 y_order = y[::-1]  # iterate through y in descending order
             for yi in y_order:
                 point = Point(xi, yi)
-                for poly in self.drone.voronoi_region:
-                    if poly.contains(point):
-                        path.append((xi, yi))
+                if self.drone.voronoi_region[self.drone.drone_id].contains(point):
+                    path.append((xi, yi))
+
         self.drone.lawnmower_path = np.array(path)
         if self.drone.planner_config["reordermode"]:
             self.drone.lawnmower_path = self.reorder_path(self.drone.position, self.drone.lawnmower_path, mode=self.drone.planner_config["reordermode"])

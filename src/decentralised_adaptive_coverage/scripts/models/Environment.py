@@ -8,7 +8,7 @@ import os
 from tools import voronoi
 
 class Field:
-    def __init__(self, size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time = 10):
+    def __init__(self, size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time = 10):
         self.size = size
         self.grid_resolution = grid_resolution
         self.drone_count = drone_count
@@ -20,7 +20,7 @@ class Field:
         self.x_values, self.y_values, self.grid_points = self.create_square_grid()
         
         # Distribute drones
-        self.drone_positions = self.distribute_drones()
+        self.drone_positions = self.distribute_drones(formation_pattern)
         
         # Generate weed distribution
         self.weed_distribution = self.generate_weed_distribution()
@@ -41,17 +41,62 @@ class Field:
         j = int((point[1] + self.size / 2) / self.grid_resolution)
         return i, j
 
-    def distribute_drones(self):
-        # Distribute drones equidistant in square pattern
-        side_length = int(np.sqrt(self.drone_count))
+    def distribute_drones(self, pattern="circle"):
+        if pattern == "circle":
+            return self.distribute_drones_circle()
+        elif pattern == "grid":
+            return self.distribute_drones_grid()
+        else:
+            raise ValueError("Unrecogonised patter. Specify from circle or grid.")
+
+    def distribute_drones_circle(self):
+        # Radius of the circle on which drones will be positioned
+        radius = self.size / 4  # You can adjust this as needed
+
+        # Angle step for each drone
+        angle_step = 2 * np.pi / self.drone_count
+
+        # Distribute drones along the circumference of a circle
         drone_positions = []
-        step = self.size / side_length
-        for i in range(side_length):
-            for j in range(side_length):
-                x = -self.size/2 + step * i + step/2
-                y = -self.size/2 + step * j + step/2
-                drone_positions.append((x, y, 3)) # Z-coordinate of 3m
+        for i in range(self.drone_count):
+            angle = i * angle_step
+            x = radius * np.cos(angle)
+            y = radius * np.sin(angle)
+
+            # Make sure the position is a valid grid coordinate
+            grid_x, grid_y = self.get_grid_coordinates((x, y))
+            valid_x = self.grid_points[grid_x * len(self.y_values) + grid_y, 0]
+            valid_y = self.grid_points[grid_x * len(self.y_values) + grid_y, 1]
+
+            drone_positions.append((valid_x, valid_y, 3))  # Z-coordinate of 3m
+
         return np.array(drone_positions)
+
+    def distribute_drones_grid(self):
+        # Distribute drones in grid pattern
+        total_drones = self.drone_count
+        rows = int(np.sqrt(total_drones))
+        cols = rows
+
+        # Adjust rows and columns if not a perfect square
+        while rows * cols < total_drones:
+            if rows < cols:
+                rows += 1
+            else:
+                cols += 1
+
+        drone_positions = []
+        step_x = self.size / rows
+        step_y = self.size / cols
+        for i in range(rows):
+            for j in range(cols):
+                if len(drone_positions) < total_drones:  # Ensure we don't exceed the total number of drones
+                    x = -self.size/2 + step_x * i + step_x/2
+                    y = -self.size/2 + step_y * j + step_y/2
+                    drone_positions.append((x, y, 3))  # Z-coordinate of 3m
+
+        return np.array(drone_positions)
+
 
     def generate_weed_distribution(self):
         # Generate weed concentration distribution within the grid

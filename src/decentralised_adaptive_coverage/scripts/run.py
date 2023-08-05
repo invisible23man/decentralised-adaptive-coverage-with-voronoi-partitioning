@@ -13,11 +13,12 @@ if __name__ == "__main__":
     size = 50
     grid_resolution = 1 
     drone_count = 16
+    formation_pattern = "grid"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 20
-    sampling_time = 30
+    iterations = 5
+    sampling_time = 1000
     disable_warnings = True
 
     if disable_warnings:
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     ANIMATION3D_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
                                         f'{EXPERIMENT_FILTERTAG}-animation3d.gif')
 
-    field = Environment.Field(size, grid_resolution, drone_count, weed_centers, weed_cov, sampling_time)
+    field = Environment.Field(size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time)
     field.plot_field()
 
     drones = [UAV.Drone(id, pos, field, planner_config, estimator_config) for id,pos in enumerate(field.drone_positions)]
@@ -84,7 +85,7 @@ if __name__ == "__main__":
             field.drone_positions[i] = drone.voronoi_center
 
         # Update the drone positions and path measurements in the field
-        field.update_drone_positions([drone.position for drone in drones])
+        field.update_drone_positions([drone.voronoi_center for drone in drones])
         field.update_path_and_measurements(drones)
 
         # field.plot_field()

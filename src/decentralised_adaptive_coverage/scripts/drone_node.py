@@ -23,7 +23,7 @@ def main():
     # Example usage
     size = 50
     grid_resolution = 1 
-    drone_count = 4
+    drone_count = 16
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
@@ -89,7 +89,7 @@ def main():
         # rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.update_voronoi()
 
-        drone.wait_for_update_voronoi_for_all_drones()
+        # drone.wait_for_update_voronoi_for_all_drones()
         field.update_drone_positions(drone.drone_positions)
 
     # if drone.enable_physics_simulation:
@@ -105,7 +105,7 @@ def main():
     # Add a delay before shutdown to ensure that all service calls have been made
     rospy.sleep(10)
 
-    rospy.signal_shutdown()
+    rospy.signal_shutdown(reason="Completed Run")
 
 if __name__ == '__main__':
     try:
