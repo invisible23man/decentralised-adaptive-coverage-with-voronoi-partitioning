@@ -63,7 +63,7 @@ class DroneRosNode:
                     f'/drone{i+1}/center',
                     rosMsgPoint,
                     self.callback_handler.center_callback,
-                    callback_args=i)
+                )
 
     def publish_payload(self, voronoi_center):
         # Setup Publishers: voronoi centers, measurements, variances
@@ -130,19 +130,18 @@ class Drone(DroneRosNode):
 
         if estimator_name == "GPR":
             self.estimator_sensor = Estimators.GaussianProcessRegressorEstimator(
-                self.estimator_config["kernel"])
-        elif estimator_name == "PF":
-            self.estimator_sensor = Estimators.ParticleFilterEstimator
-            self.num_particles = self.estimator_config["num_particles"]
-            self.particles = np.ones(
-                (self.true_weed_distribution.shape[0], self.num_particles)) / np.prod(self.true_weed_distribution.shape)
-            self.particle_weights = np.ones(
-                (self.true_weed_distribution.shape[0], self.num_particles)) / self.num_particles
-            self.temperature = self.estimator_config["temperature"]
-            self.cooling_rate = self.estimator_config["cooling"]
+                self.estimator_config["kernel"]
+            )
+        elif estimator_name == "Particle Filter":
+            self.estimator_sensor = Estimators.ParticleFilterEstimator(
+                self.true_weed_distribution.shape[0],                
+                self.estimator_config.get("num_particles", 1000),
+                self.estimator_config.get("temperature", 1.0),
+                self.estimator_config.get("cooling", 0.99)
+            )
         else:
             raise ValueError(
-                "Invalid estimator name provided. Available options are 'GPR' and 'PF'.")
+                "Invalid estimator name provided. Available options are 'GPR' and 'Particle Filter'.")
 
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(
@@ -167,8 +166,10 @@ class Drone(DroneRosNode):
             self.lawnmower_sampling_path = self.lawnmower_path
             self.remaining_path = []
 
-        self.measurements = np.squeeze(np.array([self.true_sensor(point, self.grid_points, self.true_weed_distribution)
-                                                 for point in self.lawnmower_sampling_path]))
+        self.measurements = np.squeeze(
+            np.array([self.true_sensor(point[:2], self.grid_points, self.true_weed_distribution)
+                for point in self.lawnmower_sampling_path])
+            )
 
         # Estimator Training (State Update)
         for point, measurement in zip(self.lawnmower_sampling_path, self.measurements):
@@ -176,10 +177,14 @@ class Drone(DroneRosNode):
             index_1d = grid_x * int(self.field_size /
                                     self.grid_resolution) + grid_y
 
-            if self.estimator_config["name"] == "PF":
-                self.estimated_weed_distribution[index_1d], self.particles[index_1d], self.particle_weights[index_1d], self.temperature = \
-                    Estimators.ParticleFilterEstimator.update(
-                        measurement, self.particles[index_1d], self.particle_weights[index_1d], self.num_particles, self.temperature, self.cooling_rate)
+            if self.estimator_config["name"] == "Particle Filter":
+                self.estimated_weed_distribution[index_1d], self.estimator_sensor.particles[index_1d], \
+                    self.estimator_sensor.particle_weights[index_1d], self.temperature = \
+                        self.estimator_sensor.update(
+                            measurement, 
+                            index_1d
+                        )
+
             else:
                 self.estimated_weed_distribution[index_1d] = measurement
 
@@ -192,8 +197,14 @@ class Drone(DroneRosNode):
         if (self.measurements.shape[0] < self.lawnmower_path.shape[0] or self.estimation_enabled) and len(self.remaining_path) > 0:
 
             self.estimated_measurements, self.estimate_uncertainities = \
-                Sensor.estimate_field(self.remaining_path, self.grid_points, self.estimated_weed_distribution,
-                                      self.estimator_sensor, mode=self.estimator_config["name"])
+                Sensor.estimate_field(
+                self,
+                self.remaining_path, 
+                self.grid_points, 
+                self.estimated_weed_distribution,
+                self.estimator_sensor, 
+                mode=self.estimator_config["name"]
+            )
 
             self.measurements = np.concatenate(
                 (self.measurements, self.estimated_measurements), axis=0)
@@ -202,7 +213,9 @@ class Drone(DroneRosNode):
             print(
                 f"Drone {self.drone_id+1} Performing Estimation for {self.remaining_path.shape[0]} waypoints")
         else:
-            self.estimated_measurements, self.estimate_uncertainities = [], []
+            self.estimated_measurements, self.estimate_uncertainities = np.empty_like(
+                self.measurements), np.empty_like(self.measurements)
+
 
     def update_voronoi(self):
         if self.scaling_enabled:
