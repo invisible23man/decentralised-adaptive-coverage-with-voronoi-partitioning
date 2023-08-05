@@ -5,8 +5,8 @@ import configparser
 import time
 import pickle
 import os
+import sys
 from tqdm import tqdm
-from std_srvs.srv import SetBool
 
 from models.ros import UAV
 from models import Environment
@@ -14,7 +14,7 @@ from tools import utils
 
 import warnings
 from sklearn.exceptions import ConvergenceWarning
-
+    
 
 def main():
     # Initializing ROS node.
@@ -27,8 +27,8 @@ def main():
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 50
-    sampling_time = 50
+    iterations = 20
+    sampling_time = 30
     disable_warnings = True
 
     if disable_warnings:
@@ -42,7 +42,8 @@ def main():
 
     estimator_config = {
         # "weigh_uncertainity":"individually",
-        "weigh_uncertainity":"partitionwise",        
+        # "weigh_uncertainity":"partitionwise", 
+        "weigh_uncertainity":None,       
         # "name": "PF",
         # "num_particles":2000,
         # "temperature": 1.0,
@@ -51,7 +52,7 @@ def main():
         "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
     }
 
-    EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
+    EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging_ros'
     EXPERIMENT_TIMESTAMP = ''
     EXPERIMENT_FILTERTAG = f's-{sampling_time}-it{iterations}-{utils.generate_experiment_tag(estimator_config)}'
     EXPERIMENT_FILENAME = os.path.join(EXPERIMENT_LOGGING_DIR,EXPERIMENT_TIMESTAMP,
@@ -69,7 +70,7 @@ def main():
 
     # while not rospy.is_shutdown():
     for iteration in tqdm(range(iterations)):
-        rospy.loginfo(f"\nIteration {iteration+1}")
+        rospy.loginfo(f"\nIteration {iteration+1}, Drone {drone.drone_id+1}")
 
         drone.compute_voronoi(plot=False)
         drone.plan(plot=False)
@@ -88,12 +89,28 @@ def main():
         # rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.update_voronoi()
 
-        
+        drone.wait_for_update_voronoi_for_all_drones()
+        field.update_drone_positions(drone.drone_positions)
+
     # if drone.enable_physics_simulation:
     #     drone.drone.land()
+
+    # Save data
+    if drone.drone_id == 0:
+        field.save_data(EXPERIMENT_FILENAME)
+
+        field.animate_field_2d(plot_voronoi=True, filename=ANIMATION2D_FILENAME)
+        field.animate_field_3d(plot_voronoi=True, filename=ANIMATION3D_FILENAME)
+
+    # Add a delay before shutdown to ensure that all service calls have been made
+    rospy.sleep(10)
+
+    rospy.signal_shutdown()
 
 if __name__ == '__main__':
     try:
         main()
+    except rospy.ROSException:
+        print("Service not available after waiting for 5 seconds.")
     except KeyboardInterrupt:
         exit()
