@@ -13,21 +13,22 @@ if __name__ == "__main__":
     size = 50
     grid_resolution = 1 
     drone_count = 16
-    formation_pattern = "grid"
+    formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     weed_centers = [[-15, 15], [10, -10]]
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 5
-    sampling_time = 1000
+    iterations = 50
+    sampling_time = 30
     disable_warnings = True
 
     if disable_warnings:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
     planner_config = {
-        # "reordermode": "SpiralOutward"
+        # "reordermode": "SpiralOutward", # Doesen't Work. Need more proper TSP solver, planning
         # "reordermode":"NearestNeighbor",
-        "reordermode": None
+        "reordermode": None,
+        "formation_pattern": formation_pattern
     }
 
     estimator_config = {
@@ -35,13 +36,13 @@ if __name__ == "__main__":
         # "weigh_uncertainity":"partitionwise",
         "weigh_uncertainity":None,
         
-        # "name": "PF",
-        # "num_particles":2000,
-        # "temperature": 1.0,
-        # "cooling": 0.99,
+        "name": "Particle Filter",
+        "num_particles":2000,
+        "temperature": 1.0,
+        "cooling": 0.99,
         
-        "name": "GPR",
-        "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
+        # "name": "GPR",
+        # "kernel": "C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2))"        
     }
 
     EXPERIMENT_LOGGING_DIR = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/outputs/experiment_logging'
@@ -55,7 +56,7 @@ if __name__ == "__main__":
                                         f'{EXPERIMENT_FILTERTAG}-animation3d.gif')
 
     field = Environment.Field(size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time)
-    field.plot_field()
+    # field.plot_field()
 
     drones = [UAV.Drone(id, pos, field, planner_config, estimator_config) for id,pos in enumerate(field.drone_positions)]
 

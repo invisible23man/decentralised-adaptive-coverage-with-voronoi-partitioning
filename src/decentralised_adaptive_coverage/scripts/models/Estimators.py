@@ -18,31 +18,38 @@ class GaussianProcessRegressorEstimator:
         return y_pred, sigma
 
 class ParticleFilterEstimator:
-    @staticmethod
-    def update(measurement, particles, particle_weights, num_particles, temperature, cooling_rate):
+    def __init__(self, num_grid_points, num_particles=1000, temperature=1.0, cooling_rate=0.99):
+        self.num_grid_points = num_grid_points
+        self.num_particles = num_particles
+        self.temperature = temperature
+        self.cooling_rate = cooling_rate
+        self.particles = np.ones((num_grid_points, num_particles)) / num_particles
+        self.particle_weights = np.ones((num_grid_points, num_particles)) / num_particles
+
+    def update(self, measurement, index_1d):
         # Update particle weights based on the sensed measurement
-        particle_weights = norm.pdf(measurement, loc=particles, scale=1.0)
-        particle_weights /= particle_weights.sum()  # Normalize weights
-        particle_weights = Sensor.systematic_resample(particle_weights)
+        self.particle_weights[index_1d] = norm.pdf(measurement, loc=self.particles[index_1d], scale=1.0)
+        self.particle_weights[index_1d] /= self.particle_weights[index_1d].sum()  # Normalize weights
+        self.particle_weights[index_1d] = Sensor.systematic_resample(self.particle_weights[index_1d])
 
         # Update the estimated weed density for the current grid index
-        estimated_weed_density = np.average(particles, weights=particle_weights)
+        estimated_weed_density = np.average(self.particles[index_1d], weights=self.particle_weights[index_1d])
 
         # Resample particles
-        if np.random.uniform() < temperature:
+        if np.random.uniform() < self.temperature:
             # Random resampling
-            particle_weights = np.ones_like(particle_weights) / num_particles
+            self.particle_weights[index_1d] = np.ones_like(self.particle_weights[index_1d]) / self.num_particles
         else:
             # Systematic resampling
-            particle_weights = Sensor.systematic_resample(particle_weights)
+            self.particle_weights[index_1d] = Sensor.systematic_resample(self.particle_weights[index_1d])
 
         # Randomly perturb particles
-        particles += np.random.normal(scale=temperature, size=num_particles)
+        self.particles[index_1d] += np.random.normal(scale=self.temperature, size=self.num_particles)
 
         # Decrease temperature
-        temperature *= cooling_rate
+        self.temperature *= self.cooling_rate
 
-        return estimated_weed_density, particles, particle_weights
+        return estimated_weed_density, self.particles[index_1d], self.particle_weights[index_1d], self.temperature
 
 def handle_estimate_uncertainities(drone, scaling_factor):
 

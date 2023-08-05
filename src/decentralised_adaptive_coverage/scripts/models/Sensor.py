@@ -19,15 +19,15 @@ def sense_field(coordinate, grid_points, weed_distribution, method='nearest'):
     
     return sensed_density
 
-def estimate_field(path, grid_points, weed_distribution, estimator, mode='Gaussian', sigma=1.0):
+def estimate_field(drone, path, grid_points, weed_distribution, estimator, mode='Gaussian', sigma=1.0):
     """
     Function to estimate the weed density at a given coordinate in the field.
     Args:
-    coordinate : Coordinate at which the weed density needs to be estimated.
+    path : Path for which the weed density needs to be estimated.
     grid_points : The grid points of the field.
     weed_distribution : The corresponding weed distribution at each grid point.
     estimator : An instance of an estimator object, e.g. GaussianProcessRegressorEstimator.
-    mode : The mode of estimation to be used. Options are 'Gaussian' and 'GPR'.
+    mode : The mode of estimation to be used. Options are 'Gaussian', 'GPR', and 'Particle Filter'.
     sigma : Standard deviation for Gaussian kernel.
 
     Returns:
@@ -35,7 +35,7 @@ def estimate_field(path, grid_points, weed_distribution, estimator, mode='Gaussi
     """
 
     if mode == 'Gaussian':
-        estimated_distribtion = []
+        estimated_distribution = []
         for coordinate in path:
             # Calculate Gaussian kernel
             distances = cdist(grid_points, np.atleast_2d(coordinate), 'euclidean')
@@ -43,16 +43,30 @@ def estimate_field(path, grid_points, weed_distribution, estimator, mode='Gaussi
 
             # Use the kernel values to calculate a weighted average of the weed distribution
             estimated_density_at_coordinate = np.average(weed_distribution, weights=kernel_values.flatten())
-            estimated_distribtion.append(estimated_density_at_coordinate)          
+            estimated_distribution.append(estimated_density_at_coordinate)
         estimated_distribution_uncertainties = None  # Gaussian method doesn't provide uncertainty
-    
-    elif mode == 'GPR':
-        estimated_distribtion, estimated_distribution_uncertainties = estimator.predict(np.atleast_2d(path))
-    
-    else:
-        raise ValueError(f"Invalid mode: {mode}. Options are 'Gaussian' and 'GPR'.")
 
-    return estimated_distribtion, estimated_distribution_uncertainties
+    elif mode == 'GPR':
+        estimated_distribution, estimated_distribution_uncertainties = estimator.predict(np.atleast_2d(path))
+    
+    elif mode == "Particle Filter":
+        estimated_distribution, estimated_distribution_uncertainties = [], []
+        for coordinate in path:
+            grid_x, grid_y = drone.get_grid_coordinates(coordinate)
+            index_1d = grid_x * int(drone.field_size/grid_resolution) + grid_y
+
+            # Compute the weighted average (i.e., estimate) for the current grid index
+            estimated_weed_density = np.average(estimator.particles[index_1d], weights=estimator.particle_weights[index_1d])
+            estimated_distribution.append(estimated_weed_density)
+
+            # Compute the uncertainty for the current grid index
+            uncertainty = np.sqrt(np.average((estimator.particles[index_1d] - estimated_weed_density)**2, weights=estimator.particle_weights[index_1d]))
+            estimated_distribution_uncertainties.append(uncertainty)
+        
+    else:
+        raise ValueError(f"Invalid mode: {mode}. Options are 'Gaussian', 'GPR', and 'Particle Filter'.")
+
+    return estimated_distribution, estimated_distribution_uncertainties
 
 def systematic_resample(weights):
     N = weights.shape[0]
