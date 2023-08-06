@@ -16,6 +16,9 @@ from std_msgs.msg import String
 from std_srvs.srv import Trigger, TriggerResponse
 from geometry_msgs.msg import Point as rosMsgPoint
 from gazebo_msgs.msg import ModelStates
+from models.ros.Actions import OtherDroneMonitor
+from decentralised_adaptive_coverage.msg import VoronoiUpdateFeedback, VoronoiUpdateResult
+
 
 
 class DroneRosNode:
@@ -39,9 +42,16 @@ class DroneRosNode:
 
     def setup_services(self):
         self.update_voronoi_completed = False
-        rospy.Service(f'/drone{self.drone_id+1}/update_voronoi_service', 
-                      Trigger, self.drone_update_voronoi_service)
-        rospy.sleep(1)
+        service_name = f'/drone{self.drone_id+1}/update_voronoi_service'
+        rospy.Service(service_name, Trigger, self.drone_update_voronoi_service)
+        rospy.wait_for_service(service_name)
+
+        # self.server = actionlib.SimpleActionServer(f'/drone{self.drone_id+1}/update_voronoi_action', 
+        #                                     VoronoiUpdateAction, 
+        #                                     execute_cb=self.drone_update_voronoi_action, 
+        #                                     auto_start=False)
+        # self.server.start()
+
 
     def drone_update_voronoi_service(self, request):
         # This function will be called when the service is requested.
@@ -49,6 +59,19 @@ class DroneRosNode:
             return TriggerResponse(success=True)
         else:
             return TriggerResponse(success=False)
+
+    def drone_update_voronoi_action(self, goal):
+        # This function will be called when the action is requested.
+        # It should perform the action and send feedback about its progress.
+        # For this example, we'll just simulate a long-running action.
+        for i in range(100):
+            if self.server.is_preempt_requested():
+                self.server.set_preempted()
+                return
+            rospy.sleep(0.1)
+            self.server.publish_feedback(VoronoiUpdateFeedback(percent_complete=i/100.0))
+        self.update_voronoi_completed = True
+        self.server.set_succeeded(VoronoiUpdateResult(success=True))
 
     def wait_for_update_voronoi_for_all_drones(self):
         drone_update_voronoi_completed = [False] * self.drone_count
@@ -103,7 +126,12 @@ class DroneRosNode:
                         self.callback_handler.other_center_callback,
                         callback_args = i
                 )
-        rospy.sleep(2)
+        rospy.sleep(1)
+
+        self.other_drones = {}
+        for i in range(self.drone_count):
+            if i != self.drone_id:  # Don't create a client for our own drone
+                self.other_drones[i] = OtherDroneMonitor(i)
 
 class Drone(DroneRosNode):
     def __init__(self, field: Field, planner_config, estimator_config):
