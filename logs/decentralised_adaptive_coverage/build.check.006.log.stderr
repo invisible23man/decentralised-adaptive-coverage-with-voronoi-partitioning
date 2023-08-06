@@ -1,0 +1,13 @@
+[31m[1mCMake Error[0m at /opt/ros/noetic/share/catkin/cmake/assert.cmake:20 (message):
+
+
+  Assertion failed: file
+  '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/action/VoronoiUpdate.srv'
+  does not exist.  Message: action file not found
+
+[36mCall Stack (most recent call first):[0m
+  /opt/ros/noetic/share/actionlib_msgs/cmake/actionlib_msgs-extras.cmake:35 (assert_file_exists)
+  CMakeLists.txt:61 (add_action_files)
+
+
+make: *** [Makefile:754: cmake_check_build_system] Error 1

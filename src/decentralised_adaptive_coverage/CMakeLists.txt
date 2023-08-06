@@ -10,6 +10,7 @@ project(decentralised_adaptive_coverage)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  actionlib_msgs
   message_generation
 )
 
@@ -57,23 +58,21 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  VoronoiUpdate.srv
+)
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  FILES
+  VoronoiUpdate.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs
+  std_msgs actionlib_msgs
 )
 
 ################################################
@@ -108,10 +107,10 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES decentralised_adaptive_coverage
- CATKIN_DEPENDS rospy std_msgs message_runtime
+ CATKIN_DEPENDS rospy std_msgs actionlib_msgs message_runtime
 #  DEPENDS system_lib
 )
-
+ 
 ###########
 ## Build ##
 ###########

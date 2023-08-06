@@ -1,4 +1,4 @@
-from move import generate_rectangular_spiral_path
+from decentralised_adaptive_coverage.scripts.review.move import generate_rectangular_spiral_path
 import rospy
 from std_msgs.msg import String
 from utils.PrintColours import *

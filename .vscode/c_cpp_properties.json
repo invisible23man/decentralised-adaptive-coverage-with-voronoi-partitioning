@@ -6,17 +6,11 @@
         "limitSymbolsToIncludedHeaders": false
       },
       "includePath": [
-        "/home/invisibleman/crazyswarm/ros_ws/devel/include/**",
-        "/home/invisibleman/catkin_ws/devel/include/**",
         "/opt/ros/noetic/include/**",
-        "/home/invisibleman/catkin_ws/src/darknet_ros/darknet_ros/include/**",
-        "/home/invisibleman/catkin_ws/src/iq_gnc/include/**",
-        "/home/invisibleman/catkin_ws/src/mavros/libmavconn/include/**",
-        "/home/invisibleman/crazyswarm/ros_ws/src/externalDependencies/libobjecttracker/include/**",
-        "/home/invisibleman/catkin_ws/src/mavros/mavros/include/**",
-        "/home/invisibleman/catkin_ws/src/mavros/mavros_msgs/include/**",
-        "/home/invisibleman/catkin_ws/src/mavros/test_mavros/include/**",
-        "/usr/include/**"
+        "/usr/include/**",
+        "/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage/scripts",
+        "/home/invisibleman/Robotics/Simulations/ardupilot/Tools/autotest/pysim/",
+        "/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/devel/lib/python3/dist-packages"
       ],
       "name": "ROS",
       "intelliSenseMode": "gcc-arm64",

@@ -1,7 +1,7 @@
 import numpy as np
 from filters.Kalman import KalmanFilter
-from move import generate_rectangular_spiral_path
-from sensor import gaussian_sensor_model
+from decentralised_adaptive_coverage.scripts.review.move import generate_rectangular_spiral_path
+from decentralised_adaptive_coverage.scripts.review.sensor import gaussian_sensor_model
 from shapely.geometry import Point, Polygon
 
 class Robot:

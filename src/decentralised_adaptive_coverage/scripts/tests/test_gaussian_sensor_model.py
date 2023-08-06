@@ -1,8 +1,8 @@
 import sys
-sys.path.append(r'/home/invisibleman/Robotics/adaptive-coverage-with-voronoi/src/decentralised_adaptive_coverage')
+sys.path.append(r'/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage')
 
 from utils.plots import plot_gaussian_sensor_model
-from sensor import apply_gaussian_sensor_model, sample_weed_density
+from decentralised_adaptive_coverage.scripts.review.sensor import apply_gaussian_sensor_model, sample_weed_density
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
