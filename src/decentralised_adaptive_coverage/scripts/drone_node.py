@@ -23,7 +23,7 @@ def main():
     # Example usage
     size = 50
     grid_resolution = 1 
-    drone_count = 16
+    drone_count = 5
     formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
@@ -31,7 +31,7 @@ def main():
     weed_centers = [[-8, -5], [20, 22]] # 8 Drones
     weed_cov = [[5, 0], [0, 5]]
     iterations = 5
-    sampling_time = 3000
+    sampling_time = 30
     disable_warnings = True
 
     if disable_warnings:
@@ -80,6 +80,7 @@ def main():
     for iteration in tqdm(range(iterations)):
         rospy.loginfo(f"\nIteration {iteration+1}, Drone {drone.drone_id+1}")
 
+
         drone.compute_voronoi(plot=False)
         drone.plan(plot=False)
 
@@ -97,8 +98,9 @@ def main():
         # rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.update_voronoi()
 
-        # drone.wait_for_update_voronoi_for_all_drones()
+        drone.wait_for_update_voronoi_for_all_drones()
         field.update_drone_positions(drone.drone_positions)
+
 
     # if drone.enable_physics_simulation:
     #     drone.drone.land()
@@ -110,10 +112,13 @@ def main():
         field.animate_field_2d(plot_voronoi=True, filename=ANIMATION2D_FILENAME)
         field.animate_field_3d(plot_voronoi=True, filename=ANIMATION3D_FILENAME)
 
-    # Add a delay before shutdown to ensure that all service calls have been made
-    rospy.sleep(10)
+    # # Add a delay before shutdown to ensure that all service calls have been made
+    # rospy.sleep(10)
 
-    rospy.signal_shutdown(reason="Completed Run")
+    # rospy.signal_shutdown(reason="Completed Run")
+    rospy.loginfo(f"{drone.drone_id} completed run.")
+    while True:
+        rospy.sleep(1)
 
 if __name__ == '__main__':
     try:

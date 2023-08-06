@@ -38,40 +38,10 @@ class DroneRosNode:
         self.other_covariances = {}
 
     def setup_services(self):
-        rospy.Service('update_voronoi_service'.format(
-            self.drone_id), Trigger, self.drone_update_voronoi_service)
         self.update_voronoi_completed = False
-        time.sleep(2)
-
-    def setup_publishers(self):
-        # Setup Publishers: voronoi center, measurements, variances
-        self.pub_center = rospy.Publisher(
-            f'center', rosMsgPoint, queue_size=10, latch=True)
-        self.voronoi_center = self.drone_positions[self.drone_id]
-        self.pub_center.publish(rosMsgPoint(
-            self.voronoi_center[0], self.voronoi_center[1], self.voronoi_center[2]))
-
-        time.sleep(2)
-
-    def setup_subscribers(self):
-        # Setup Subscribers: all voronoi centers, measurements, variances
-
-        # Initialize subscribers for the other drones
-        for i in range(self.drone_count):
-            # if i != self.drone_id:  # Don't subscribe to our own topic
-                rospy.Subscriber(
-                    f'/drone{i+1}/center',
-                    rosMsgPoint,
-                    self.callback_handler.center_callback,
-                )
-
-    def publish_payload(self, voronoi_center):
-        # Setup Publishers: voronoi centers, measurements, variances
-        self.update_voronoi_completed = False
-        center_msg = rosMsgPoint(
-            voronoi_center[0], voronoi_center[1], voronoi_center[2])
-        self.pub_center.publish(center_msg)
-        self.update_voronoi_completed = True
+        rospy.Service(f'/drone{self.drone_id+1}/update_voronoi_service', 
+                      Trigger, self.drone_update_voronoi_service)
+        rospy.sleep(1)
 
     def drone_update_voronoi_service(self, request):
         # This function will be called when the service is requested.
@@ -83,6 +53,7 @@ class DroneRosNode:
     def wait_for_update_voronoi_for_all_drones(self):
         drone_update_voronoi_completed = [False] * self.drone_count
         while not all(drone_update_voronoi_completed):
+            rospy.loginfo(f"Drone {self.drone_id+1} waiting for {self.drone_count-sum(drone_update_voronoi_completed)} Drones")
             for i in range(self.drone_count):
                 try:
                     check_update = rospy.ServiceProxy(
@@ -92,6 +63,47 @@ class DroneRosNode:
                 except rospy.ServiceException as e:
                     rospy.loginfo(f"Service call failed: {e}")
         self.update_voronoi_completed = False
+
+    def setup_publishers(self):
+        # Setup Publishers: voronoi center, measurements, variances
+        self.pub_center = rospy.Publisher(
+            f'/drone{self.drone_id+1}/center', rosMsgPoint, queue_size=10, latch=True)
+        self.voronoi_center = self.drone_positions[self.drone_id]
+        self.pub_center.publish(rosMsgPoint(
+            self.voronoi_center[0], self.voronoi_center[1], self.voronoi_center[2]))
+
+        rospy.sleep(1)
+
+    def publish_payload(self, voronoi_center):
+        # Setup Publishers: voronoi centers, measurements, variances
+        self.update_voronoi_completed = False
+        center_msg = rosMsgPoint(
+            voronoi_center[0], voronoi_center[1], voronoi_center[2])
+        self.pub_center.publish(center_msg)
+        rospy.sleep(1)
+        self.update_voronoi_completed = True
+
+    def setup_subscribers(self):
+        # Setup Subscribers: all voronoi centers, measurements, variances
+
+        # Initialize subscriber for self
+        rospy.Subscriber(
+                f'/drone{self.drone_id+1}/center',
+                rosMsgPoint,
+                self.callback_handler.center_callback,
+        )
+        rospy.sleep(1)
+
+        # Initialize subscribers for the other drones
+        for i in range(self.drone_count):
+            if i != self.drone_id:  # Don't subscribe to our own topic
+                rospy.Subscriber(
+                        f'/drone{i+1}/center',
+                        rosMsgPoint,
+                        self.callback_handler.other_center_callback,
+                        callback_args = i
+                )
+        rospy.sleep(2)
 
 class Drone(DroneRosNode):
     def __init__(self, field: Field, planner_config, estimator_config):

@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # Example usage
     size = 50
     grid_resolution = 1 
-    drone_count = 8
+    drone_count = 6
     formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
