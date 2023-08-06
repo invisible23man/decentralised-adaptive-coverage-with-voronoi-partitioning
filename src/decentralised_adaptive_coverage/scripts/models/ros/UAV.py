@@ -12,6 +12,7 @@ from tools.rostools.actions import Action
 from tools.rostools.services import Service
 from tools.rostools.publishers import Publisher
 from tools.rostools.subscribers import Subscriber
+from tools.rostools.navigation import navigate_to_destination
 
 class DroneRosNode:
     def __init__(self, field: Environment.Field):
@@ -193,3 +194,71 @@ class Drone(DroneRosNode):
         self.voronoi_center = np.array(new_center)
 
         self.publisher.publish_payload(self.voronoi_center)
+
+class GNCDrone(Drone):
+    def __init__(self, field: Environment.Field, planner_config, estimator_config):
+        super().__init__(field, planner_config, estimator_config)
+        self.gnc_drone = gnc_api(self.drone_id)
+        self.initialize_gnc_drone()
+
+    def initialize_gnc_drone(self):
+        # Wait for FCU connection.
+        self.gnc_drone.wait4connect()
+        # Wait for the mode to be switched.
+        # drone.wait4start()
+        self.gnc_drone.set_mode("GUIDED")
+
+        # Setup Subscribers and Get Transformation Matrix
+        self.subscriber.setup_gnc_drone_subscribers()
+
+        # Create local reference frame.
+        self.drone.initialize_local_frame()
+        # Request takeoff with an altitude of 3m.
+        self.drone.takeoff(self.altitude)
+
+         # Wait for the drone to reach the desired takeoff height.
+        while True:
+            if self.drone.get_current_location().z > self.altitude:
+                break
+            rospy.sleep(1)  # Sleep for 1 second before checking the altitude again.
+
+    def sense(self):
+        # Cut Short Sampling Path
+        if self.sampling_time < len(self.lawnmower_path):
+            self.lawnmower_sampling_path = self.lawnmower_path[:self.sampling_time]
+            self.remaining_path = self.lawnmower_path[self.lawnmower_sampling_path.shape[0]:]
+        else:  # Sample Full, No Estimation
+            self.lawnmower_sampling_path = self.lawnmower_path
+            self.remaining_path = []
+
+        self.measurements = []
+
+        for point in self.lawnmower_sampling_path:
+            # Use the gnc_api to move the drone to the current point
+            reached_waypoint = False
+            while not reached_waypoint:
+                reached_waypoint = navigate_to_destination(x=point[0], y=point[1], z=point[2], gnc_drone=self.gnc_drone)
+                rospy.sleep(3)
+
+            # Then sense the environment at the current point
+            measurement = self.true_sensor(point[:2], self.grid_points, self.true_weed_distribution)
+
+            # Append the measurement to the measurements list
+            self.measurements.append(measurement)
+
+            # Use the measurement to update the estimator
+            grid_x, grid_y = self.get_grid_coordinates(point)
+            index_1d = grid_x * int(self.field_size / self.grid_resolution) + grid_y
+
+            if self.estimator_config["name"] == "Particle Filter":
+                self.estimated_weed_distribution[index_1d], self.estimator_sensor.particles[index_1d], \
+                    self.estimator_sensor.particle_weights[index_1d], self.temperature = \
+                        self.estimator_sensor.update(measurement, index_1d)
+            else:
+                self.estimated_weed_distribution[index_1d] = measurement
+
+        # Train the GPR estimator if necessary
+        if self.estimator_config["name"] == "GPR":
+            self.measurements = np.squeeze(np.array(self.measurements))
+            self.estimator_sensor.train(X=self.lawnmower_sampling_path, y=self.measurements)
+

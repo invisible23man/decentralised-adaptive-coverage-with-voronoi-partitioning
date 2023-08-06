@@ -36,7 +36,7 @@ def generate_node_launch_files(num_drones, LAUNCHFILE):
     drone_group_template = \
     """
     <group ns="drone{drone_id}">
-        <node pkg="decentralised_adaptive_coverage" type="control_algorithm.py" name="control_algorithm_node_{drone_id_minus_1}" output="screen" respawn="false" respawn_delay="5"/>
+        <node pkg="decentralised_adaptive_coverage" type="drone_node.py" name="control_algorithm_node_{drone_id_minus_1}" output="screen" respawn="false" respawn_delay="5"/>
             <param name="namespace" value="/drone{drone_id}"/>
             <param name="use_sim_time"  value="true" />
     </group>
@@ -270,7 +270,8 @@ def generate_ardupilot_launch_script(num_drones, file_path):
     script += "cd ~/Robotics/Simulations/ardupilot/ArduCopter/ && \ \ngnome-terminal \\\n"
 
     for i in range(num_drones):
-        script += f" --tab -e \"python sim_vehicle.py -v ArduCopter -f gazebo-drone{i+1} -I{i}\" \\\n"
+        # script += f" --tab -e \"python sim_vehicle.py -v ArduCopter -f gazebo-drone{i+1} -I{i}\" \\\n"
+        script += f" --tab -e \"sim_vehicle.py -v ArduCopter -f gazebo-drone{i+1} -I{i}\" \\\n"
 
     # Remove the trailing backslash and newline character
     script = script.rstrip("\\\n")
@@ -312,10 +313,10 @@ if __name__ == '__main__':
     # Read the number of drones from the config file
     config = configparser.ConfigParser()
     config.read(CONFIGFILE)
-    num_drones = config.getint('INITIAL_SETUP', 'n_drones')
-    home_area = config.getint('GAZEBO_SETUP', 'home_area')
-    coverage_radii = config.getfloat('INITIAL_SETUP', 'r_area')
-    world_name = config.get('GAZEBO_SETUP', 'world_name')
+    num_drones = config.getint('TEAM', 'drone_count')
+    coverage_radii = config.getfloat('FIELD', 'size')
+    home_area = config.getint('GAZEBO', 'home_area')
+    world_name = config.get('GAZEBO', 'world_name')
 
     NODELAUNCHFILE = config.get('FILE_SETUP', 'node_launch_file')
     MAVROSLAUNCHFILE = config.get('FILE_SETUP', 'mavros_launch_file')

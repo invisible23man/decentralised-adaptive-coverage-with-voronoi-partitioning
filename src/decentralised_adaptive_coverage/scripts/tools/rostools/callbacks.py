@@ -1,7 +1,6 @@
 from tools.rostools import msg_handler
 from tools.rostools.transformations import model_states_callback
 import numpy as np
-from std_srvs.srv import SetBool
 import rospy
 
 class CallbackHandler:
@@ -23,4 +22,4 @@ class CallbackHandler:
         self.drone.other_covariances[drone_id] = msg_handler.decode_data(data)
 
     def mavros_set_home_callback(self, data, drone_number):
-        self.drone.drone.transformation_matrix = model_states_callback(data, drone_number+1)
+        self.drone.gnc_drone.transformation_matrix = model_states_callback(data, drone_number+1)

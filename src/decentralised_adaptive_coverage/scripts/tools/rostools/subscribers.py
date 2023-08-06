@@ -1,6 +1,7 @@
 from tools.rostools.actions import OtherDroneMonitor
 import rospy
 from geometry_msgs.msg import Point as rosMsgPoint
+from gazebo_msgs.msg import ModelStates
 
 class Subscriber:
     def __init__(self, drone):
@@ -25,3 +26,21 @@ class Subscriber:
                         callback_args = i
                 )
         rospy.sleep(1)
+
+    def setup_gnc_drone_subscribers(self):
+        # Subscriber for coordinate transformations
+        self.model_states_sub = rospy.Subscriber(
+            '/gazebo/model_states', 
+            ModelStates, 
+            self.drone.callback_handler.mavros_set_home_callback, 
+            self.drone.drone_id
+        )
+
+        # Wait for the transformation matrix to become available
+        while self.drone.gnc_drone.transformation_matrix is None:
+            rospy.loginfo(f"Waiting for transformation matrix for {self.drone.drone_id}")
+            rospy.sleep(0.1)
+
+        # Unsubscribe after receiving the data once
+        self.model_states_sub.unregister() 
+        rospy.loginfo(f"Transform Broadcasted for {self.drone.drone_id}")

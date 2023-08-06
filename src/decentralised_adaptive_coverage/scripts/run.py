@@ -16,8 +16,8 @@ if __name__ == "__main__":
     formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
-    weed_centers = [[-8, -15], [15, 15]] # 16 Drones
-    # weed_centers = [[-8, -5], [20, 22]] # 8 Drones
+    # weed_centers = [[-8, -15], [15, 15]] # 16 Drones
+    weed_centers = [[-8, -5], [20, 22]] # 8 Drones
     weed_cov = [[5, 0], [0, 5]]
     iterations = 50
     sampling_time = 30

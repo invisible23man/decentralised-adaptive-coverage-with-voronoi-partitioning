@@ -17,11 +17,11 @@ from mavros_msgs.srv import SetMode, SetModeRequest
 
 
 class gnc_api:
-    def __init__(self):
+    def __init__(self, drone_id):
         """This function is called at the beginning of a program and will start of the communication links to the FCU.
         """
-        self.drone_id = None
-        self.rate = None
+        self.drone_id = drone_id
+        self.rate = rospy.Rate(3)
 
         self.current_state_g = State()
         self.current_pose_g = Odometry()
