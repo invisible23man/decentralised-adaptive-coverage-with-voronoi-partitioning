@@ -42,5 +42,26 @@
             <param name="use_sim_time"  value="true" />
     </group>
     
+
+    <group ns="drone6">
+        <node pkg="decentralised_adaptive_coverage" type="drone_node.py" name="control_algorithm_node_5" output="screen" respawn="false" respawn_delay="5"/>
+            <param name="namespace" value="/drone6"/>
+            <param name="use_sim_time"  value="true" />
+    </group>
+    
+
+    <group ns="drone7">
+        <node pkg="decentralised_adaptive_coverage" type="drone_node.py" name="control_algorithm_node_6" output="screen" respawn="false" respawn_delay="5"/>
+            <param name="namespace" value="/drone7"/>
+            <param name="use_sim_time"  value="true" />
+    </group>
+    
+
+    <group ns="drone8">
+        <node pkg="decentralised_adaptive_coverage" type="drone_node.py" name="control_algorithm_node_7" output="screen" respawn="false" respawn_delay="5"/>
+            <param name="namespace" value="/drone8"/>
+            <param name="use_sim_time"  value="true" />
+    </group>
+    
     </launch>
     

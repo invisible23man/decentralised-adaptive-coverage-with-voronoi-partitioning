@@ -10,14 +10,14 @@ class Action:
     def setup_actions(self):
         self.server = actionlib.SimpleActionServer(f'/drone{self.drone.drone_id+1}/update_voronoi_action', 
                                             VoronoiUpdateAction, 
-                                            execute_cb=self.drone.drone_update_voronoi_action, 
+                                            execute_cb=self.drone_update_voronoi_action, 
                                             auto_start=False)
         self.server.start()
 
-        self.drone.other_drones = {}
-        for i in range(self.drone.drone_count):
-            if i != self.drone.drone_id:  # Don't create a client for our own drone
-                self.drone.other_drones[i] = OtherDroneMonitor(i)
+        # self.drone.other_drones = {}
+        # for i in range(self.drone.drone_count):
+        #     if i != self.drone.drone_id:  # Don't create a client for our own drone
+        #         self.drone.other_drones[i] = OtherDroneMonitor(f'/drone/{i+1}')
 
     def drone_update_voronoi_action(self, goal):
         # This function will be called when the action is requested.

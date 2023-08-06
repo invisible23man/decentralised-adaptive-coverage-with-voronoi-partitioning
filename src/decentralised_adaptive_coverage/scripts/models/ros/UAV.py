@@ -1,21 +1,12 @@
-import sys
-import time
-
-from models.Environment import Field
-from models import Sensor, Estimators
-from tools import voronoi, planner as planpath
 from tqdm import tqdm
-from scipy.stats import norm
 import numpy as np
-
 import rospy
+
 from iq_gnc.py_gnc_functions_swarm import gnc_api
 from iq_gnc.PrintColours import *
-from std_msgs.msg import String
-from std_srvs.srv import Trigger, TriggerResponse
-from geometry_msgs.msg import Point as rosMsgPoint
-from gazebo_msgs.msg import ModelStates
 
+from models import Sensor, Estimators, Environment
+from tools import voronoi, planner
 from tools.rostools.callbacks import CallbackHandler
 from tools.rostools.actions import Action
 from tools.rostools.services import Service
@@ -23,7 +14,7 @@ from tools.rostools.publishers import Publisher
 from tools.rostools.subscribers import Subscriber
 
 class DroneRosNode:
-    def __init__(self, field: Field):
+    def __init__(self, field: Environment.Field):
         self.ns = rospy.get_namespace()
         self.drone_id = int(self.ns.strip('/').replace('drone', ''))-1
         self.drone_count = field.drone_count
@@ -31,13 +22,13 @@ class DroneRosNode:
 
         # Set up modules
         self.callback_handler = CallbackHandler(self) 
-        # self.action = Action(self)
+        self.action = Action(self)
         self.service = Service(self)
         self.publisher = Publisher(self)
         self.subscriber = Subscriber(self)
 
         # Set up services, publishers, subscribers and actions
-        # self.action.setup_actions()
+        self.action.setup_actions()
         self.service.setup_services()
         self.publisher.setup_publishers()
         self.subscriber.setup_subscribers()
@@ -50,7 +41,7 @@ class DroneRosNode:
         self.other_covariances = {}
 
 class Drone(DroneRosNode):
-    def __init__(self, field: Field, planner_config, estimator_config):
+    def __init__(self, field: Environment.Field, planner_config, estimator_config):
         super().__init__(field)
         self.altitude = 3
 
@@ -99,6 +90,10 @@ class Drone(DroneRosNode):
             raise ValueError(
                 "Invalid estimator name provided. Available options are 'GPR' and 'Particle Filter'.")
 
+    def initialize_iteration(self, iteration):
+        self.update_voronoi_completed = False
+        self.current_iteration = iteration
+
     def compute_voronoi(self, plot=False):
         voronoi_calculator = voronoi.VoronoiCalculator(
             self.drone_positions, 'square', self.field_size)
@@ -107,10 +102,10 @@ class Drone(DroneRosNode):
             voronoi_calculator.plot_voronoi()
 
     def plan(self, plot=False):
-        planner = planpath.Planner(self)
-        planner.compute_lawnmower_path()
+        pathplanner = planner.Planner(self)
+        pathplanner.compute_lawnmower_path()
         if plot:
-            planner.plot_lawnmower_path()
+            pathplanner.plot_lawnmower_path()
         self.lawnmower_path_tracker.append(self.lawnmower_path)
 
     def sense(self):
@@ -198,30 +193,3 @@ class Drone(DroneRosNode):
         self.voronoi_center = np.array(new_center)
 
         self.publisher.publish_payload(self.voronoi_center)
-
-
-if __name__ == "__main__":
-
-    # Example usage
-    size = 50
-    grid_resolution = 1
-    drone_count = 16
-    weed_centers = [[size/4, -size/4], [size/4, size/4]]
-    weed_cov = [[5, 0], [0, 5]]
-
-    field = Field(size, grid_resolution, drone_count, weed_centers, weed_cov)
-    field.plot_field()
-
-    drones = [Drone(pos, id, field)
-              for id, pos in enumerate(field.drone_positions)]
-
-    for i, drone in enumerate(drones[:4]):
-        drone.compute_voronoi(plot=True)
-        drone.plan()
-        print(f"Drone {i+1} Path Length: {len(drone.lawnmower_path)}")
-
-        drone.sense()
-        print(f"Drone {i+1} Measurements: {drone.measurements[:10]}")
-
-        drone.update_voronoi()
-        print(f"Drone {i+1} Centers: {drone.voronoi_center_tracker}")

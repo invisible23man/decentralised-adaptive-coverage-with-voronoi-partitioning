@@ -1,6 +1,6 @@
 #%%
-from initialization import initial_setup
-from sensor import sensor_func
+from decentralised_adaptive_coverage.scripts.review.initialization import initial_setup
+from decentralised_adaptive_coverage.scripts.review.sensor import sensor_func
 from dintegrate import integrate_sensor_values
 from utils import voronoi
 import numpy as np

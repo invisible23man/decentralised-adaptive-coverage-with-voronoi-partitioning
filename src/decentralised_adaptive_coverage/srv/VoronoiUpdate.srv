@@ -1,0 +1,7 @@
+# VoronoiUpdate.srv
+
+# Request
+---
+# Response
+bool success
+int32 iteration_timestamp

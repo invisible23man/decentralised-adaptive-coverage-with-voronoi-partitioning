@@ -12,15 +12,15 @@ if __name__ == "__main__":
     # Example usage
     size = 50
     grid_resolution = 1 
-    drone_count = 6
+    drone_count = 8
     formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
-    # weed_centers = [[-8, -15], [15, 15]] # 16 Drones
-    weed_centers = [[-8, -5], [20, 22]] # 8 Drones
+    weed_centers = [[-8, -15], [15, 15]] # 16 Drones
+    # weed_centers = [[-8, -5], [20, 22]] # 8 Drones
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 5
-    sampling_time = 3000
+    iterations = 50
+    sampling_time = 30
     disable_warnings = True
 
     if disable_warnings:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                                         f'{EXPERIMENT_FILTERTAG}-animation3d.gif')
 
     field = Environment.Field(size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time)
-    # field.plot_field()
+    field.plot_field()
 
     drones = [UAV.Drone(id, pos, field, planner_config, estimator_config) for id,pos in enumerate(field.drone_positions)]
 

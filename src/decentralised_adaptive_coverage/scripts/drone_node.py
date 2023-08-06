@@ -3,9 +3,7 @@
 import rospy
 import configparser
 import time
-import pickle
 import os
-import sys
 from tqdm import tqdm
 
 from models.ros import UAV
@@ -15,7 +13,6 @@ from tools import utils
 import warnings
 from sklearn.exceptions import ConvergenceWarning
     
-
 def main():
     # Initializing ROS node.
     rospy.init_node("drone_controller" + rospy.get_namespace().replace('/', ''), anonymous=True)
@@ -23,14 +20,14 @@ def main():
     # Example usage
     size = 50
     grid_resolution = 1 
-    drone_count = 5
+    drone_count = 8
     formation_pattern = "circle"
     # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
     # weed_centers = [[-8, -15], [15, 15]] # 16 Drones
     weed_centers = [[-8, -5], [20, 22]] # 8 Drones
     weed_cov = [[5, 0], [0, 5]]
-    iterations = 5
+    iterations = 10
     sampling_time = 30
     disable_warnings = True
 
@@ -80,14 +77,14 @@ def main():
     for iteration in tqdm(range(iterations)):
         rospy.loginfo(f"\nIteration {iteration+1}, Drone {drone.drone_id+1}")
 
-
+        drone.initialize_iteration(iteration)
         drone.compute_voronoi(plot=False)
         drone.plan(plot=False)
 
         if len(drone.lawnmower_path) == 0:
             drone.voronoi_center_tracker.append(drone.voronoi_center)
             drone.measurements = []
-            drone.publish_payload(drone.voronoi_center)
+            drone.publisher.publish_payload(drone.voronoi_center)
             continue   
 
         # rospy.loginfo(f"Started movement and sensing:drone{drone.id}, iter:{iteration}")
@@ -117,8 +114,8 @@ def main():
 
     # rospy.signal_shutdown(reason="Completed Run")
     rospy.loginfo(f"{drone.drone_id} completed run.")
-    while True:
-        rospy.sleep(1)
+    # while True:
+        # rospy.sleep(1)
 
 if __name__ == '__main__':
     try:

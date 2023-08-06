@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pickle
 import os
 from tools import voronoi
+import copy
 
 class Field:
     def __init__(self, size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time = 10):
@@ -108,7 +109,7 @@ class Field:
 
     def update_drone_positions(self, drone_positions):
         # self.drone_positions = drone_positions
-        self.drone_position_tracker.append(drone_positions)
+        self.drone_position_tracker.append(copy.deepcopy(drone_positions))
 
     def update_path_and_measurements(self, drones):
         for i, drone in enumerate(drones):

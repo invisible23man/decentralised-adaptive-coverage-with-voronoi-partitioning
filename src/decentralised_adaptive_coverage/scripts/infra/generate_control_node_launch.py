@@ -49,7 +49,7 @@ def generate_node_launch_files(num_drones, LAUNCHFILE):
 
 if __name__ == '__main__':
 
-    num_drones = 5
+    num_drones = 8
 
     NODELAUNCHFILE = '/home/invisible23man/Robotics/Simulations/decentralised-adaptive-coverage-with-voronoi-partitioning/src/decentralised_adaptive_coverage/launch/control_node.launch'
 
