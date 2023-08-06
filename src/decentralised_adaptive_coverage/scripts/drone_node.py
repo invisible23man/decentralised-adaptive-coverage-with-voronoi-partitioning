@@ -98,7 +98,7 @@ def main():
         # rospy.loginfo(f"Calculating New Center:drone{drone.drone_id}, iter:{i}")
         drone.update_voronoi()
 
-        drone.wait_for_update_voronoi_for_all_drones()
+        drone.service.wait_for_update_voronoi_for_all_drones()
         field.update_drone_positions(drone.drone_positions)
 
 
