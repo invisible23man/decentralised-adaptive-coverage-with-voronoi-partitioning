@@ -212,13 +212,13 @@ class GNCDrone(Drone):
         self.subscriber.setup_gnc_drone_subscribers()
 
         # Create local reference frame.
-        self.drone.initialize_local_frame()
+        self.gnc_drone.initialize_local_frame()
         # Request takeoff with an altitude of 3m.
-        self.drone.takeoff(self.altitude)
+        self.gnc_drone.takeoff(self.altitude)
 
          # Wait for the drone to reach the desired takeoff height.
         while True:
-            if self.drone.get_current_location().z > self.altitude:
+            if self.gnc_drone.get_current_location().z > self.altitude:
                 break
             rospy.sleep(1)  # Sleep for 1 second before checking the altitude again.
 
@@ -233,8 +233,9 @@ class GNCDrone(Drone):
 
         self.measurements = []
 
-        for point in self.lawnmower_sampling_path:
-            # Use the gnc_api to move the drone to the current point
+        for i, point in tqdm(enumerate(self.lawnmower_sampling_path), 
+                             desc=f"Drone {self.drone_id+1} Sampling Progress", 
+                             total=len(self.lawnmower_sampling_path)):            # Use the gnc_api to move the drone to the current point
             reached_waypoint = False
             while not reached_waypoint:
                 reached_waypoint = navigate_to_destination(x=point[0], y=point[1], z=point[2], gnc_drone=self.gnc_drone)

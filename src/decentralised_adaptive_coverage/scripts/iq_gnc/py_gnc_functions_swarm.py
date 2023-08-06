@@ -378,8 +378,8 @@ class gnc_api:
         self.local_desired_heading_g = heading
         heading = heading + self.correction_heading_g + self.local_offset_g
 
-        rospy.loginfo("The desired heading is {}".format(
-            self.local_desired_heading_g))
+        # rospy.loginfo("The desired heading is {}".format(
+        #     self.local_desired_heading_g))
 
         yaw = radians(heading)
         pitch = 0.0
@@ -424,8 +424,8 @@ class gnc_api:
 
         z = Zlocal + self.correction_vector_g.position.z + self.local_offset_pose_g.z
 
-        rospy.loginfo(
-            "Destination set to x:{} y:{} z:{} origin frame".format(x, y, z))
+        # rospy.loginfo(
+        #     "Destination set to x:{} y:{} z:{} origin frame".format(x, y, z))
 
         self.waypoint_g.pose.position = Point(x, y, z)
 

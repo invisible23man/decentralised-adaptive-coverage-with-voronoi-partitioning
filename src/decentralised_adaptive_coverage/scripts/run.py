@@ -10,17 +10,19 @@ from sklearn.exceptions import ConvergenceWarning
 if __name__ == "__main__":
 
     # Example usage
-    size = 50
+    size = 10
     grid_resolution = 1 
     drone_count = 8
     formation_pattern = "circle"
-    # weed_centers = [[-size/4, size/4], [size/4, -size/4]]
+    weed_centers = [[-size/4, size/4], [size/4, -size/4]]
     # weed_centers = [[-15, 15], [10, -10]]
     # weed_centers = [[-8, -15], [15, 15]] # 16 Drones
-    weed_centers = [[-8, -5], [20, 22]] # 8 Drones
-    weed_cov = [[5, 0], [0, 5]]
+    # weed_centers = [[-8, -5], [20, 22]] # 8 Drones
+    # weed_cov = [[5, 0], [0, 5]]
+    weed_cov = [[1, 0], [0, 1]]
+
     iterations = 50
-    sampling_time = 30
+    sampling_time = 10
     disable_warnings = True
 
     if disable_warnings:

@@ -1,5 +1,5 @@
 #!/bin/bash
-cd ~/Robotics/Simulations/ardupilot/ArduCopter/ && \
+cd ~/Robotics/Simulations/ardupilot/ArduCopter/ && \ 
 gnome-terminal \
  --tab -e "sim_vehicle.py -v ArduCopter -f gazebo-drone1 -I0" \
  --tab -e "sim_vehicle.py -v ArduCopter -f gazebo-drone2 -I1" \
