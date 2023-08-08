@@ -38,6 +38,19 @@
             "justMyCode": true
         },
         {
+            "name": "Python: World Generator File",
+            "type": "python",
+            "python": "/home/invisible23man/anaconda3/envs/drones/bin/python",
+            "args": [
+                "fre21_drones"
+            ],
+            "preLaunchTask": "selectDebugConfig",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },        
+        {
             "name": "Python: Test Sensor Model",
             "type": "python",
             "python": "/home/invisibleman/anaconda3/envs/drones/bin/python",

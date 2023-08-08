@@ -7,6 +7,7 @@ import pickle
 import os
 from tools import voronoi
 import copy
+from scipy.interpolate import griddata
 
 class Field:
     def __init__(self, size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time = 10):
@@ -116,24 +117,64 @@ class Field:
             self.path_tracker[i].append(drone.lawnmower_path)
             self.measurement_tracker[i].append(drone.measurements)
 
-    def save_data(self, filename):
+    def save_data(self, iter, filename):
         data = {
             'positions': self.drone_position_tracker,
             'paths': self.path_tracker,
             'measurements': self.measurement_tracker
         }
-        with open(filename, 'wb') as f:
+        with open(f'{filename}-data.pkl', 'wb') as f:
             pickle.dump(data, f)
 
-    def plot_field(self):
+        self.plot_field(plot_weeds=True, plot_voronoi=True, filename=filename, iteration=iter)
+
+    def plot_field(self, plot_weeds=False, weed_map = 'scatter', plot_voronoi=False, filename=None, iteration=None):
         # Plot the field with drone positions and weed distribution
-        plt.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
-        plt.scatter(self.drone_positions[:, 0], self.drone_positions[:, 1], color='red', label='Drones')
-        plt.title('Field with Drones and Weed Distribution')
-        plt.legend()
-        plt.colorbar(label='Weed Concentration')
-        plt.axis('equal')
-        plt.show()
+        fig, ax = plt.subplots()
+        ax.set_xlim([-self.size/2, self.size/2])
+        ax.set_ylim([-self.size/2, self.size/2])
+        title_parts = ['Field with Drones\n']
+
+        if plot_voronoi:
+            voronoi_calculator = voronoi.VoronoiCalculator(self.drone_positions[:, :2], 'square', self.size)
+            voronoi_regions = voronoi_calculator.compute_voronoi()
+            for poly in voronoi_regions:
+                ax.fill(*zip(*poly.exterior.coords), alpha=0.4)
+            title_parts.append('Voronoi Partitions' if plot_weeds else 'and Voronoi Partitions')
+
+        if plot_weeds:
+            if weed_map == 'scatter':
+                scatter = ax.scatter(self.grid_points[:, 0], self.grid_points[:, 1], c=self.weed_distribution, cmap='YlGn', s=5)
+                plt.colorbar(scatter, ax=ax, label='Weed Concentration')
+            if weed_map == 'contour':
+                grid_x, grid_y = np.mgrid[self.grid_points[:, 0].min():self.grid_points[:, 0].max():100j, 
+                                        self.grid_points[:, 1].min():self.grid_points[:, 1].max():100j]
+
+                # Interpolate the scattered data onto the regular grid
+                grid_weed_distribution = griddata(self.grid_points, self.weed_distribution, (grid_x, grid_y), method='cubic')
+
+                # Plot the contour
+                contour = ax.contourf(grid_x, grid_y, grid_weed_distribution, cmap='viridis', levels=15)
+                plt.colorbar(contour, ax=ax, label='Weed Concentration')
+
+            title_parts.append('and Weed Distribution')
+        if not plot_voronoi:
+            ax.grid(True, which='both', color='k', linestyle='--', linewidth=0.5)
+        if iteration:
+            title_parts.append(f'at iteration {iteration}')
+
+        ax.scatter(self.drone_positions[:, 0], self.drone_positions[:, 1], color='red', label='Drones')
+        ax.set_title(', '.join(title_parts))
+        ax.legend()
+        ax.set_xticks(np.arange(-self.size/2, self.size/2 + 1, self.grid_resolution), minor=True)
+        ax.set_yticks(np.arange(-self.size/2, self.size/2 + 1, self.grid_resolution), minor=True)
+        ax.axis('equal')
+
+        if filename:
+            plt.savefig(f'{filename}-plot.png')
+        else:
+            plt.show()
+        
 
     def plot_field_3d(self):
         """

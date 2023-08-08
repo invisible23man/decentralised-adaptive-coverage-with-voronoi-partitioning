@@ -4,9 +4,24 @@ import os
 def generate_experiment_tag(filter_config):
     tag = 'f'
     for k, v in filter_config.items():
+        # Replace special characters with meaningful alternatives
+        if v is not None:
+            if not isinstance(v,str):
+                v=str(v)
+            v = v.replace('*', 'x').replace('(', 'I_').replace(')', '_I')
+        else:
+            v = '0'  # Default value when v is None
+        
         abbreviated_key = ''.join(word[0] for word in k.split('_'))  # Takes the first letter of each word in the key
         tag += f'_{abbreviated_key}{v}'
+    
+    # Truncate the tag if it's too long (e.g., 100 characters)
+    max_length = 100
+    if len(tag) > max_length:
+        tag = tag[:max_length]
+    
     return tag
+
 
 def read_config_file(filename):
     config = configparser.ConfigParser()

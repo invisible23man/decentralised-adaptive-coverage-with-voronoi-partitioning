@@ -56,11 +56,11 @@ def estimate_field(drone, path, grid_points, weed_distribution, estimator, mode=
             index_1d = grid_x * int(drone.field_size/drone.grid_resolution) + grid_y
 
             # Compute the weighted average (i.e., estimate) for the current grid index
-            estimated_weed_density = np.average(estimator.particles[index_1d], weights=estimator.particle_weights[index_1d])
+            estimated_weed_density = np.average(estimator.particles[index_1d], weights=estimator.particle_weights[index_1d]+ 1e-10)
             estimated_distribution.append(estimated_weed_density)
 
             # Compute the uncertainty for the current grid index
-            uncertainty = np.sqrt(np.average((estimator.particles[index_1d] - estimated_weed_density)**2, weights=estimator.particle_weights[index_1d]))
+            uncertainty = np.sqrt(np.average((estimator.particles[index_1d] - estimated_weed_density)**2, weights=estimator.particle_weights[index_1d]+ 1e-10))
             estimated_distribution_uncertainties.append(uncertainty)
         estimated_distribution_uncertainties = np.array(estimated_distribution_uncertainties)
         

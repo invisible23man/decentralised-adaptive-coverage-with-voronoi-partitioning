@@ -29,20 +29,21 @@ class Planner:
                     path.append((xi.round(), yi.round(), self.drone.altitude))
 
         self.drone.lawnmower_path = np.array(path)
-        if self.drone.planner_config["reordermode"]:
-            self.drone.lawnmower_path = self.reorder_path(self.drone.voronoi_center.round(), self.drone.lawnmower_path, mode=self.drone.planner_config["reordermode"])
+        self.drone.lawnmower_path = self.reorder_path(self.drone.voronoi_center.round(), self.drone.lawnmower_path, mode=self.drone.planner_config["planner_algorithm"])
 
-    def reorder_path(self, start_point, path, mode="NearestNeighbor"):
-        if mode == "NearestNeighbor":
+    def reorder_path(self, start_point, path, mode="Nearest Neighbor"):
+        if mode == "Nearest Neighbor":
             return self.reorder_nearest_neighbor(start_point, path)
-        elif mode == "SpiralOutward":
+        elif mode == "Spiral Outward":
             return self.reorder_path_spiral_outward(start_point, path)
-        elif mode == "SpiralOutA*":
+        elif mode == "Spiral Out A*":
             return self.reorder_path_spiral_outward_astar(start_point, path)
-        elif mode == "SpiralOutSimple":
+        elif mode == "Spiral Out Simple":
             return self.reorder_path_spiral_outward_simple(start_point, path)
+        elif mode == "Lawn Mover":
+            return self.drone.lawnmower_path
         else:
-            raise ValueError("Invalid mode. Choose 'NearestNeighbor', 'SpiralOutward', 'SpiralOutA*, 'SpiralOutSimple")
+            raise ValueError(f"Invalid mode: {mode}, Choose 'Lawn Mover', 'Nearest Neighbor', 'Spiral Outward', 'Spiral OutA *, 'Spiral Out Simple")
 
     def reorder_path_spiral_outward_astar(self, start_point, path):
         """
@@ -64,7 +65,7 @@ class Planner:
         self.shortest_path = shortest_path
 
         # Create a graph from the path
-        self.graph = self.create_graph(path.round())
+        self.graph = self.create_graph_astar(path.round(),start_point)
         
         # Initialize the reordered path with the start point
         reordered_path = [[start_point[0],start_point[1]]]
@@ -177,6 +178,25 @@ class Planner:
                     weight = max(node_weights[tuple(path[i])], node_weights[tuple(path[j])])
                     G.add_edge(tuple(path[i]), tuple(path[j]), weight=weight)
         return G
+    
+    def create_graph_astar(self, path, original_start):
+        """
+        Function to create a graph from a path.
+        Each point in the path becomes a node in the graph, and edges are created between adjacent points.
+        """
+        G = nx.Graph()
+        node_weights = {}
+        for point in path:
+            node = tuple(point)
+            G.add_node(node)
+            node_weights[node] = np.linalg.norm(np.array(point)-np.array(original_start))
+        for i in range(len(path) - 1):
+            for j in range(i+1, len(path)):
+                if np.linalg.norm(np.array(path[i])-np.array(path[j])) == self.drone.grid_resolution:
+                    weight = max(node_weights[tuple(path[i])], node_weights[tuple(path[j])])
+                    G.add_edge(tuple(path[i]), tuple(path[j]), weight=weight)
+        return G
+
 
     def reorder_path_spiral_outward(self, start_point, path):
         """
@@ -202,10 +222,10 @@ class Planner:
 
         return np.array(reordered_path)
 
-    def get_nearest_unvisited_node(self, current, visited, nodes):
+    def get_nearest_unvisited_node(self, start,current, visited, nodes):
         visited_tuples = [tuple(node) for node in visited]
-        unvisited_nodes = [node for node in nodes if tuple(node) not in visited_tuples]
-        distances = [self.heuristic(current, node) for node in unvisited_nodes]
+        unvisited_nodes = [node for node in nodes if tuple(node) not in visited_tuples and tuple(node)!=current]
+        distances = [self.heuristic(start, current, node) for node in unvisited_nodes]
         return unvisited_nodes[np.argmin(distances)]
 
 
@@ -213,11 +233,28 @@ class Planner:
         visited = []
         current = start
         while len(visited) < len(nodes):
-            goal = tuple(self.get_nearest_unvisited_node(current, visited, nodes))
-            path_segment = self.shortest_path(self.graph, current, goal)
+            goal = tuple(self.get_nearest_unvisited_node(start, current, visited, nodes))
+            path_segment = self.shortest_path(self.graph, start, current, goal)
+            
+            # If visited is not empty, exclude the first element of path_segment
+            if visited:
+                path_segment = path_segment[1:]
+            
             visited.extend(path_segment)
             current = goal
         return np.array(visited)
+
+    def plot_visited(visited):
+        # Convert visited list to numpy array for easier indexing
+        visited_array = np.array(visited)
+
+        # Plot the visited nodes
+        plt.scatter(visited_array[:, 0], visited_array[:, 1])
+        
+        # Optionally, you can also plot the path between nodes:
+        plt.plot(visited_array[:, 0], visited_array[:, 1], 'r-')
+        
+        plt.show()
 
     def plot_lawnmower_path(self):
         # Plot the lawnmower path

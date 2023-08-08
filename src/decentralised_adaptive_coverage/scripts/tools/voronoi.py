@@ -88,7 +88,7 @@ class VoronoiCalculator:
 
         return new_regions, np.asarray(new_vertices)
     
-    def plot_voronoi(self):
+    def plot_voronoi(self, grid_resolution = 1):
         fig, ax = plt.subplots()
         ax.set_xlim([-self.field_size/2, self.field_size/2])
         ax.set_ylim([-self.field_size/2, self.field_size/2])
@@ -102,6 +102,13 @@ class VoronoiCalculator:
         # Draw drone positions
         ax.plot(self.positions[:,0], self.positions[:,1], 'ko')
         ax.set_aspect('equal')
+        ax.legend()        
+        ax.grid(True, which='both', color='k', linestyle='--', linewidth=0.5)
+        ax.set_xticks(np.arange(-self.field_size/2, self.field_size/2 + 1, grid_resolution), minor=True)
+        ax.set_yticks(np.arange(-self.field_size/2, self.field_size/2 + 1, grid_resolution), minor=True)
+        ax.axis('equal')
+        ax.set_title('Voronoi Partitioning')
+
         plt.show()
 
 

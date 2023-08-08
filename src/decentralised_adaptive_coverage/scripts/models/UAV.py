@@ -157,6 +157,9 @@ class Drone:
         self.voronoi_center_tracker.append(new_center)
         self.voronoi_center = np.array(new_center)
 
+        if self.voronoi_center not in self.grid_points:
+            self.voronoi_center = self.lawnmower_sampling_path[-1]
+
 
 if __name__ == "__main__":
 
