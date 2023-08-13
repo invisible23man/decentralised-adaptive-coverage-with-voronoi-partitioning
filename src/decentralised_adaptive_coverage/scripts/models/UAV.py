@@ -38,7 +38,7 @@ class Drone:
 
     def initialize_estimator(self, estimator_config):
         self.estimator_config = estimator_config
-        estimator_name = self.estimator_config.get("name", "None")
+        estimator_name = self.estimator_config.get("estimator_name", "None")
 
         self.estimated_weed_distribution = np.ones_like(
             self.true_weed_distribution) / np.prod(self.true_weed_distribution.shape)
@@ -60,12 +60,12 @@ class Drone:
             raise ValueError(
                 "Invalid estimator name provided. Available options are 'GPR' and 'Particle Filter'.")
 
-    def compute_voronoi(self, plot=False):
+    def compute_voronoi(self, plot=False, mode='bounded'):
         voronoi_calculator = voronoi.VoronoiCalculator(
             self.drone_positions, 'square', self.field_size)
-        self.voronoi_region = voronoi_calculator.compute_voronoi()
+        self.voronoi_region = voronoi_calculator.compute_voronoi(mode)
         if plot:
-            voronoi_calculator.plot_voronoi()
+            voronoi_calculator.plot_voronoi(self.grid_resolution, mode)
 
     def plan(self, plot=False):
         planner = planpath.Planner(self)
@@ -94,7 +94,7 @@ class Drone:
             index_1d = grid_x * int(self.field_size /
                                     self.grid_resolution) + grid_y
 
-            if self.estimator_config["name"] == "Particle Filter":
+            if self.estimator_config["estimator_name"] == "Particle Filter":
                 self.estimated_weed_distribution[index_1d], self.estimator_sensor.particles[index_1d], \
                     self.estimator_sensor.particle_weights[index_1d], self.temperature = \
                         self.estimator_sensor.update(
@@ -105,7 +105,7 @@ class Drone:
             else:
                 self.estimated_weed_distribution[index_1d] = measurement
 
-        if self.estimator_config["name"] == "GPR":
+        if self.estimator_config["estimator_name"] == "GPR":
             self.estimator_sensor.train(
                 X=self.lawnmower_sampling_path, y=self.measurements)
 
@@ -120,7 +120,7 @@ class Drone:
                 self.grid_points, 
                 self.estimated_weed_distribution,
                 self.estimator_sensor, 
-                mode=self.estimator_config["name"]
+                mode=self.estimator_config["estimator_name"]
             )
 
             self.measurements = np.concatenate(

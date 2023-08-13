@@ -66,7 +66,7 @@ def main():
 
     # Save data
     if drone.drone_id == 0:
-        field.save_data(experiment_filename)
+        field.save_data(iteration, experiment_filename)
 
         field.animate_field_2d(plot_voronoi=True, filename=animation2d_filename)
         field.animate_field_3d(plot_voronoi=True, filename=animation3d_filename)

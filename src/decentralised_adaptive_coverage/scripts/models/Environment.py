@@ -140,7 +140,7 @@ class Field:
             voronoi_regions = voronoi_calculator.compute_voronoi()
             for poly in voronoi_regions:
                 ax.fill(*zip(*poly.exterior.coords), alpha=0.4)
-            title_parts.append('Voronoi Partitions' if plot_weeds else 'and Voronoi Partitions')
+            # title_parts.append('Voronoi Partitions' if plot_weeds else 'and Voronoi Partitions')
 
         if plot_weeds:
             if weed_map == 'scatter':
@@ -176,7 +176,7 @@ class Field:
             plt.show()
         
 
-    def plot_field_3d(self):
+    def plot_field_3d(self, mode = 'all'):
         """
         Function to plot a 3D representation of the field.
         """
@@ -184,11 +184,14 @@ class Field:
         ax = fig.add_subplot(111, projection='3d')
         X, Y = np.meshgrid(self.x_values, self.y_values)
         ax.plot_surface(X, Y, self.weed_distribution.reshape(X.shape), cmap='viridis')
-        ax.scatter(self.drone_positions[:, 0], self.drone_positions[:, 1], self.drone_positions[:, 2], color='red', label='Drones', alpha=0.5, s=10)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Weed density')
-        ax.set_title('Field with Drones and Weed Distribution (3D)')
+        if mode == 'all':
+            ax.scatter(self.drone_positions[:, 0], self.drone_positions[:, 1], self.drone_positions[:, 2], color='red', label='Drones', alpha=0.5, s=10)
+            ax.set_title('Field with Drones and Weed Distribution (3D)')
+        else:
+            ax.set_title('Field with Weed Distribution (3D)')
         plt.show()
 
     def animate_field_2d(self, plot_voronoi=False, filename=None):

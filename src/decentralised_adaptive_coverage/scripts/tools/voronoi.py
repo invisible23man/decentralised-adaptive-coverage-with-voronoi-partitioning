@@ -9,11 +9,12 @@ class VoronoiCalculator:
         self.positions = positions[:,:2]
         self.boundary_type = boundary_type
         self.field_size = field_size
+        self.vor = None
         self.voronoi_regions = []
 
-    def compute_voronoi(self):
-        vor = Voronoi(self.positions)
-        regions, vertices = self.voronoi_finite_polygons_2d(vor, radius=self.field_size)
+    def compute_voronoi(self, mode = 'bounded'):
+        self.vor = Voronoi(self.positions)
+        regions, vertices = self.voronoi_finite_polygons_2d(self.vor, radius=self.field_size)
 
         # Define a square representing the field boundaries
         field_boundary = Polygon([(-self.field_size/2, -self.field_size/2), (-self.field_size/2, self.field_size/2), 
@@ -88,16 +89,22 @@ class VoronoiCalculator:
 
         return new_regions, np.asarray(new_vertices)
     
-    def plot_voronoi(self, grid_resolution = 1):
+    def plot_voronoi(self, grid_resolution = 1, mode = 'bounded'):
         fig, ax = plt.subplots()
         ax.set_xlim([-self.field_size/2, self.field_size/2])
         ax.set_ylim([-self.field_size/2, self.field_size/2])
 
         # Draw Voronoi region
-        if isinstance(self.voronoi_regions, Polygon):
-            voronoi_region = [voronoi_region]
-        for poly in self.voronoi_regions:
-            ax.fill(*zip(*poly.exterior.coords), alpha=0.4)
+        if mode == 'bounded':
+            if isinstance(self.voronoi_regions, Polygon):
+                voronoi_region = [voronoi_region]
+            for poly in self.voronoi_regions:
+                ax.fill(*zip(*poly.exterior.coords), alpha=0.4)
+        else:
+            for i, region in enumerate(self.vor.regions):
+                if not -1 in region and len(region) > 0:
+                    polygon = [self.vor.vertices[i] for i in region]
+                    ax.fill(*zip(*polygon), alpha=0.4)
 
         # Draw drone positions
         ax.plot(self.positions[:,0], self.positions[:,1], 'ko')
@@ -110,5 +117,7 @@ class VoronoiCalculator:
         ax.set_title('Voronoi Partitioning')
 
         plt.show()
+
+
 
 

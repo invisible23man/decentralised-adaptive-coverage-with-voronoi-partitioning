@@ -69,7 +69,7 @@ class Drone(DroneRosNode):
 
     def initialize_estimator(self, estimator_config):
         self.estimator_config = estimator_config
-        estimator_name = self.estimator_config.get("name", "None")
+        estimator_name = self.estimator_config.get("estimator_name", "None")
 
         self.estimated_weed_distribution = np.ones_like(
             self.true_weed_distribution) / np.prod(self.true_weed_distribution.shape)
@@ -129,7 +129,7 @@ class Drone(DroneRosNode):
             index_1d = grid_x * int(self.field_size /
                                     self.grid_resolution) + grid_y
 
-            if self.estimator_config["name"] == "Particle Filter":
+            if self.estimator_config["estimator_name"] == "Particle Filter":
                 self.estimated_weed_distribution[index_1d], self.estimator_sensor.particles[index_1d], \
                     self.estimator_sensor.particle_weights[index_1d], self.temperature = \
                         self.estimator_sensor.update(
@@ -140,7 +140,7 @@ class Drone(DroneRosNode):
             else:
                 self.estimated_weed_distribution[index_1d] = measurement
 
-        if self.estimator_config["name"] == "GPR":
+        if self.estimator_config["estimator_name"] == "GPR":
             self.estimator_sensor.train(
                 X=self.lawnmower_sampling_path, y=self.measurements)
 
@@ -155,7 +155,7 @@ class Drone(DroneRosNode):
                 self.grid_points, 
                 self.estimated_weed_distribution,
                 self.estimator_sensor, 
-                mode=self.estimator_config["name"]
+                mode=self.estimator_config["estimator_name"]
             )
 
             self.measurements = np.concatenate(
@@ -251,7 +251,7 @@ class GNCDrone(Drone):
             grid_x, grid_y = self.get_grid_coordinates(point)
             index_1d = grid_x * int(self.field_size / self.grid_resolution) + grid_y
 
-            if self.estimator_config["name"] == "Particle Filter":
+            if self.estimator_config["estimator_name"] == "Particle Filter":
                 self.estimated_weed_distribution[index_1d], self.estimator_sensor.particles[index_1d], \
                     self.estimator_sensor.particle_weights[index_1d], self.temperature = \
                         self.estimator_sensor.update(measurement, index_1d)
@@ -259,7 +259,7 @@ class GNCDrone(Drone):
                 self.estimated_weed_distribution[index_1d] = measurement
 
         # Train the GPR estimator if necessary
-        if self.estimator_config["name"] == "GPR":
+        if self.estimator_config["estimator_name"] == "GPR":
             self.measurements = np.squeeze(np.array(self.measurements))
             self.estimator_sensor.train(X=self.lawnmower_sampling_path, y=self.measurements)
 

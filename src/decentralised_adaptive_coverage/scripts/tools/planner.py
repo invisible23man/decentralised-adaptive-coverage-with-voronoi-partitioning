@@ -30,6 +30,7 @@ class Planner:
 
         self.drone.lawnmower_path = np.array(path)
         self.drone.lawnmower_path = self.reorder_path(self.drone.voronoi_center.round(), self.drone.lawnmower_path, mode=self.drone.planner_config["planner_algorithm"])
+        # self.drone.lawnmower_path = self.reorder_path(self.drone.voronoi_center.round(), self.drone.lawnmower_path, mode="Spiral Outward")
 
     def reorder_path(self, start_point, path, mode="Nearest Neighbor"):
         if mode == "Nearest Neighbor":

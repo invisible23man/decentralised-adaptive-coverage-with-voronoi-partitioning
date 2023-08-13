@@ -21,7 +21,7 @@ if __name__ == "__main__":
     weed_cov = [[5, 0], [0, 5]]
     # weed_cov = [[1, 0], [0, 1]]
 
-    iterations = 100
+    iterations = 1
     sampling_time = 30
     disable_warnings = True
 
@@ -29,8 +29,8 @@ if __name__ == "__main__":
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
     planner_config = {
-        "planner_algorithm": "Lawn Mover",
-        # "planner_algorithm": "Spiral Outward", # Doesen't Work. Need more proper TSP solver, planning
+        # "planner_algorithm": "Lawn Mover",
+        "planner_algorithm": "Spiral Outward", # Doesen't Work. Need more proper TSP solver, planning
         # "planner_algorithm": "Spiral Out Simple", #Debugging, excecution stuck
         # "planner_algorithm":"Nearest Neighbor",
         # "planner_algorithm": "Spiral Out A*", #Debugging
@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
     field = Environment.Field(size, grid_resolution, drone_count, formation_pattern, weed_centers, weed_cov, sampling_time)
     # field.plot_field()
+    # field.plot_field_3d(mode="only_weeds")
 
     drones = [UAV.Drone(id, pos, field, planner_config, estimator_config) for id,pos in enumerate(field.drone_positions)]
 
@@ -71,8 +72,8 @@ if __name__ == "__main__":
         print(f"\nIteration {iteration+1}")
 
         for i, drone in enumerate(drones):
-            drone.compute_voronoi(plot=False)
-            drone.plan(plot=False)
+            drone.compute_voronoi(plot=False, mode='bounded')
+            drone.plan(plot=True)
             # print(f"Drone {i+1} Path Length: {len(drone.lawnmower_path)}")
 
             if len(drone.lawnmower_path) == 0:

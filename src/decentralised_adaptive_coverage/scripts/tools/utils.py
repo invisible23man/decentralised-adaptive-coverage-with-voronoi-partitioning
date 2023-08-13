@@ -42,9 +42,9 @@ def read_config_file(filename):
     disable_warnings = run_section.getboolean('disable_warnings', True)
 
     planner_section = config['PLANNER']
-    reordermode = planner_section.get('reordermode', None)
+    reordermode = planner_section.get('planner_algorithm', None)
     planner_config = {
-        "reordermode": reordermode,
+        "planner_algorithm": reordermode,
         "formation_pattern": formation_pattern
     }
 
@@ -61,13 +61,13 @@ def read_config_file(filename):
 
     if estimator_name == "GPR":
         estimator_config = {
-            "name": estimator_name,
+            "estimator_name": estimator_name,
             "kernel": kernel,
             "weigh_uncertainity": weigh_uncertainity
         }
     elif estimator_name == 'Particle Filter':
         estimator_config = {
-            "name": estimator_name,
+            "estimator_name": estimator_name,
             "num_particles": num_particles,
             "temperature": temperature,
             "cooling": cooling,
